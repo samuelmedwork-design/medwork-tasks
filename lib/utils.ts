@@ -92,3 +92,16 @@ export function isOverdue(dueDate: string | null, status: TaskStatus): boolean {
   const due = parseISO(dueDate)
   return due < today
 }
+
+export type DueDateStatus = 'overdue' | 'urgent' | 'normal' | 'none'
+
+export function getDueDateStatus(dueDate: string | null, status: TaskStatus): DueDateStatus {
+  if (!dueDate || status === 'completed' || status === 'cancelled') return 'none'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const due = parseISO(dueDate)
+  const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays < 0) return 'overdue'
+  if (diffDays <= 2) return 'urgent'
+  return 'normal'
+}

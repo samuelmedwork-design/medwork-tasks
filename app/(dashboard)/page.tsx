@@ -94,9 +94,9 @@ export default async function DashboardPage() {
                           {getStatusLabel(task.status)}
                         </span>
                         {task.due_date && (
-                          <span className={`flex items-center gap-1 text-xs ${overdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
+                          <span className={`flex items-center gap-1 text-xs font-medium ${overdue ? 'text-red-500' : 'text-slate-400'}`}>
                             <Calendar className="w-3 h-3" />
-                            {formatDate(task.due_date)}{overdue && ' · atrasada'}
+                            {overdue ? 'ATRASADA' : formatDate(task.due_date)}
                           </span>
                         )}
                       </div>

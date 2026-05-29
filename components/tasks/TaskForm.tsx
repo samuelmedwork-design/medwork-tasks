@@ -11,7 +11,6 @@ interface SubtaskInput {
   id?: string
   title: string
   responsible_id: string
-  due_date: string
   sort_order: number
 }
 
@@ -40,7 +39,6 @@ export default function TaskForm({ task, onClose, onSaved }: TaskFormProps) {
       id: s.id,
       title: s.title,
       responsible_id: s.responsible_id ?? '',
-      due_date: s.due_date ?? '',
       sort_order: s.sort_order,
     })) ?? []
   )
@@ -60,7 +58,7 @@ export default function TaskForm({ task, onClose, onSaved }: TaskFormProps) {
   function addSubtask() {
     setSubtasks((prev) => [
       ...prev,
-      { title: '', responsible_id: '', due_date: '', sort_order: prev.length },
+      { title: '', responsible_id: '', sort_order: prev.length },
     ])
   }
 
@@ -151,7 +149,6 @@ export default function TaskForm({ task, onClose, onSaved }: TaskFormProps) {
           task_id: taskId,
           title: s.title.trim(),
           responsible_id: s.responsible_id || null,
-          due_date: s.due_date || null,
           sort_order: i,
         }
 
@@ -337,24 +334,16 @@ export default function TaskForm({ task, onClose, onSaved }: TaskFormProps) {
                         placeholder="Título da subtarefa"
                         className="w-full bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-500 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={sub.responsible_id}
-                          onChange={(e) => updateSubtask(i, 'responsible_id', e.target.value)}
-                          className="bg-slate-800 border border-slate-600 text-slate-300 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        >
-                          <option value="">Responsável</option>
-                          {members.map((m) => (
-                            <option key={m.id} value={m.id}>{m.name}</option>
-                          ))}
-                        </select>
-                        <input
-                          type="date"
-                          value={sub.due_date}
-                          onChange={(e) => updateSubtask(i, 'due_date', e.target.value)}
-                          className="bg-slate-800 border border-slate-600 text-slate-300 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        />
-                      </div>
+                      <select
+                        value={sub.responsible_id}
+                        onChange={(e) => updateSubtask(i, 'responsible_id', e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-600 text-slate-300 rounded-md px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      >
+                        <option value="">Responsável (opcional)</option>
+                        {members.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
                     </div>
                     <button
                       type="button"

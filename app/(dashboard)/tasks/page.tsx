@@ -68,10 +68,10 @@ export default function TasksPage() {
     }))
   }
 
-  async function handleAddSubtask(taskId: string, title: string) {
+  async function handleAddSubtask(taskId: string, title: string, responsibleId: string) {
     const { data, error } = await supabase
       .from('subtasks')
-      .insert({ task_id: taskId, title, sort_order: 999 })
+      .insert({ task_id: taskId, title, responsible_id: responsibleId || null, sort_order: 999 })
       .select('*, responsible:team_members!subtasks_responsible_id_fkey(*)')
       .single()
     if (error) { toast.error('Erro ao adicionar subtarefa.'); return }

@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronRight, Calendar, User, Pencil, Trash2,
   CheckSquare, Square, Archive, ArchiveRestore, Plus, X, Check,
 } from 'lucide-react'
-import { cn, formatDate, getPriorityColor, getPriorityLabel, getStatusColor, getStatusLabel, calculateProgress, getInitials, isOverdue } from '@/lib/utils'
+import { cn, getPriorityColor, getPriorityLabel, getStatusColor, getStatusLabel, calculateProgress, getInitials, formatDate, getDueDateStatus } from '@/lib/utils'
 import type { TaskWithRelations, TeamMember } from '@/lib/types'
 
 interface TaskCardProps {
@@ -13,7 +13,7 @@ interface TaskCardProps {
   isExpanded: boolean
   onToggleExpand: (taskId: string) => void
   onToggleSubtask: (subtaskId: string, currentStatus: 'pending' | 'completed') => void
-  onAddSubtask: (taskId: string, title: string) => Promise<void>
+  onAddSubtask: (taskId: string, title: string, responsibleId: string) => Promise<void>
   onDeleteSubtask: (subtaskId: string, taskId: string) => void
   onEdit: (task: TaskWithRelations) => void
   onDelete: (taskId: string) => void
@@ -23,21 +23,23 @@ interface TaskCardProps {
 
 export default function TaskCard({
   task, isExpanded, onToggleExpand, onToggleSubtask, onAddSubtask,
-  onDeleteSubtask, onEdit, onDelete, onArchive,
+  onDeleteSubtask, onEdit, onDelete, onArchive, members,
 }: TaskCardProps) {
   const [addingSubtask, setAddingSubtask] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
+  const [newSubtaskResponsible, setNewSubtaskResponsible] = useState('')
   const [saving, setSaving] = useState(false)
 
   const progress = calculateProgress(task.subtasks)
-  const overdue = isOverdue(task.due_date, task.status)
+  const dueDateStatus = getDueDateStatus(task.due_date, task.status)
   const completedCount = task.subtasks.filter(s => s.status === 'completed').length
 
   async function handleSaveSubtask() {
     if (!newSubtaskTitle.trim() || saving) return
     setSaving(true)
-    await onAddSubtask(task.id, newSubtaskTitle.trim())
+    await onAddSubtask(task.id, newSubtaskTitle.trim(), newSubtaskResponsible)
     setNewSubtaskTitle('')
+    setNewSubtaskResponsible('')
     setAddingSubtask(false)
     setSaving(false)
   }
@@ -45,6 +47,7 @@ export default function TaskCard({
   function handleCancelAdd() {
     setAddingSubtask(false)
     setNewSubtaskTitle('')
+    setNewSubtaskResponsible('')
   }
 
   return (
@@ -97,10 +100,19 @@ export default function TaskCard({
         </div>
 
         {/* Due date */}
-        <div className={cn('flex-shrink-0 hidden md:flex items-center gap-1 text-xs', overdue ? 'text-red-500 font-medium' : 'text-slate-400')}>
-          <Calendar className="w-3 h-3" />
-          {formatDate(task.due_date)}
-        </div>
+        {task.due_date && (
+          <div className={cn(
+            'flex-shrink-0 hidden md:flex items-center gap-1.5 text-xs font-medium rounded-full px-2 py-0.5',
+            dueDateStatus === 'overdue' && 'bg-red-100 text-red-600',
+            dueDateStatus === 'urgent' && 'bg-amber-100 text-amber-600',
+            dueDateStatus === 'normal' && 'text-slate-400 bg-transparent px-0 py-0',
+          )}>
+            <Calendar className="w-3 h-3" />
+            {dueDateStatus === 'overdue' && <span>ATRASADA</span>}
+            {dueDateStatus === 'urgent' && <span>⚠ {formatDate(task.due_date)}</span>}
+            {dueDateStatus === 'normal' && <span>{formatDate(task.due_date)}</span>}
+          </div>
+        )}
 
         {/* Progress bar */}
         {task.subtasks.length > 0 && (
@@ -170,13 +182,7 @@ export default function TaskCard({
                     {subtask.title}
                   </span>
                   {subtask.responsible && (
-                    <span className="text-xs text-slate-400 hidden sm:block">{subtask.responsible.name}</span>
-                  )}
-                  {subtask.due_date && (
-                    <span className="text-xs text-slate-400 hidden md:flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {formatDate(subtask.due_date)}
-                    </span>
+                    <span className="text-xs text-slate-400 flex-shrink-0">{subtask.responsible.name}</span>
                   )}
                   <button
                     onClick={() => onDeleteSubtask(subtask.id, task.id)}
@@ -198,7 +204,7 @@ export default function TaskCard({
                 Adicionar subtarefa
               </button>
             ) : (
-              <div className="flex items-center gap-2 mt-1 px-2">
+              <div className="mt-2 p-3 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2">
                 <input
                   type="text"
                   autoFocus
@@ -208,24 +214,35 @@ export default function TaskCard({
                     if (e.key === 'Enter') handleSaveSubtask()
                     if (e.key === 'Escape') handleCancelAdd()
                   }}
-                  placeholder="Título da subtarefa..."
-                  className="flex-1 bg-white border border-slate-200 text-slate-800 placeholder-slate-400 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                  placeholder="Nome da subtarefa..."
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-                <button
-                  onClick={handleSaveSubtask}
-                  disabled={saving || !newSubtaskTitle.trim()}
-                  className="p-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg transition-colors"
-                  title="Salvar"
-                >
-                  <Check className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleCancelAdd}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
-                  title="Cancelar"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={newSubtaskResponsible}
+                    onChange={e => setNewSubtaskResponsible(e.target.value)}
+                    className="flex-1 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Responsável (opcional)</option>
+                    {members.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleSaveSubtask}
+                    disabled={saving || !newSubtaskTitle.trim()}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    Salvar
+                  </button>
+                  <button
+                    onClick={handleCancelAdd}
+                    className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
