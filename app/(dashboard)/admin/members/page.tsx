@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Loader2, X } from 'lucide-react'
+import { Plus, Loader2, X, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { getInitials } from '@/lib/utils'
@@ -15,28 +15,31 @@ interface MemberFormData {
   role: MemberRole
 }
 
+const avatarColors = [
+  'bg-indigo-100 text-indigo-700', 'bg-purple-100 text-purple-700', 'bg-pink-100 text-pink-700',
+  'bg-blue-100 text-blue-700', 'bg-teal-100 text-teal-700', 'bg-emerald-100 text-emerald-700',
+]
+function getAvatarColor(name: string) {
+  return avatarColors[name.charCodeAt(0) % avatarColors.length]
+}
+
+const inputClass = "w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+const labelClass = "block text-sm font-medium text-slate-700 mb-1.5"
+
 export default function MembersPage() {
   const supabase = createClient()
   const [members, setMembers] = useState<TeamMemberWithSector[]>([])
   const [sectors, setSectors] = useState<Sector[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingMember, setEditingMember] = useState<TeamMemberWithSector | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const [form, setForm] = useState<MemberFormData>({
-    name: '',
-    email: '',
-    password: '',
-    sector_id: '',
-    role: 'member',
-  })
+  const [form, setForm] = useState<MemberFormData>({ name: '', email: '', password: '', sector_id: '', role: 'member' })
 
   async function fetchMembers() {
     setLoading(true)
-    const { data } = await supabase
-      .from('team_members')
-      .select('*, sector:sectors(*)')
-      .order('name')
+    const { data } = await supabase.from('team_members').select('*, sector:sectors(*)').order('name')
     setMembers((data as TeamMemberWithSector[]) ?? [])
     setLoading(false)
   }
@@ -47,127 +50,117 @@ export default function MembersPage() {
   }, [])
 
   function openCreate() {
+    setEditingMember(null)
     setForm({ name: '', email: '', password: '', sector_id: '', role: 'member' })
+    setShowForm(true)
+  }
+
+  function openEdit(member: TeamMemberWithSector) {
+    setEditingMember(member)
+    setForm({ name: member.name, email: member.email, password: '', sector_id: member.sector_id ?? '', role: member.role })
     setShowForm(true)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name.trim() || !form.email.trim() || !form.password) return
+    if (!form.name.trim() || !form.email.trim()) return
     setSaving(true)
 
     try {
-      // Use service role via API route to create user
-      const res = await fetch('/api/admin/create-member', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      if (editingMember) {
+        // Edit existing member
+        const updates: Partial<MemberFormData> = {
           name: form.name.trim(),
-          email: form.email.trim(),
-          password: form.password,
-          sector_id: form.sector_id || null,
+          sector_id: form.sector_id || '',
           role: form.role,
-        }),
-      })
-
-      const result = await res.json()
-      if (!res.ok) throw new Error(result.error ?? 'Erro ao criar membro.')
-
-      toast.success('Membro criado com sucesso!')
+        }
+        const { error } = await supabase
+          .from('team_members')
+          .update({ name: updates.name, sector_id: updates.sector_id || null, role: updates.role })
+          .eq('id', editingMember.id)
+        if (error) throw new Error(error.message)
+        toast.success('Membro atualizado.')
+      } else {
+        // Create new member via API route (needs service role for auth creation)
+        if (!form.password) { toast.error('Senha obrigatória para novo membro.'); setSaving(false); return }
+        const res = await fetch('/api/admin/create-member', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), password: form.password, sector_id: form.sector_id || null, role: form.role }),
+        })
+        const result = await res.json()
+        if (!res.ok) throw new Error(result.error ?? 'Erro ao criar membro.')
+        toast.success('Membro criado.')
+      }
       setShowForm(false)
       fetchMembers()
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro ao criar membro.'
-      toast.error(message)
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar membro.')
     } finally {
       setSaving(false)
     }
   }
 
-  // Avatar color based on name
-  const avatarColors = [
-    'bg-indigo-700', 'bg-purple-700', 'bg-pink-700',
-    'bg-blue-700', 'bg-teal-700', 'bg-emerald-700',
-  ]
-  function getAvatarColor(name: string) {
-    const index = name.charCodeAt(0) % avatarColors.length
-    return avatarColors[index]
-  }
-
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Membros</h1>
-          <p className="text-slate-400 text-sm mt-1">Gerencie os membros da equipe</p>
+          <h1 className="text-2xl font-bold text-slate-900">Membros</h1>
+          <p className="text-slate-500 text-sm mt-1">Gerencie os membros da equipe</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-sm transition-colors"
-        >
+        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm">
           <Plus className="w-4 h-4" />
           Novo Membro
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+            <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
           </div>
         ) : members.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">Nenhum membro cadastrado.</div>
+          <div className="text-center py-12 text-slate-400">Nenhum membro cadastrado.</div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-700 bg-slate-900/50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Membro</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Email</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Setor</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Perfil</th>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Membro</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Setor</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Perfil</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody>
-              {members.map((member) => (
-                <tr key={member.id} className="border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors">
+              {members.map(member => (
+                <tr key={member.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full ${getAvatarColor(member.name)} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${getAvatarColor(member.name)}`}>
                         {getInitials(member.name)}
                       </div>
-                      <span className="text-sm font-medium text-slate-200">{member.name}</span>
+                      <span className="text-sm font-medium text-slate-800">{member.name}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-slate-400">{member.email}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-500">{member.email}</td>
                   <td className="px-5 py-3.5">
                     {member.sector ? (
-                      <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{
-                          backgroundColor: `${member.sector.color}20`,
-                          color: member.sector.color,
-                          border: `1px solid ${member.sector.color}40`,
-                        }}
-                      >
-                        <span>{member.sector.icon}</span>
-                        {member.sector.name}
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                        style={{ backgroundColor: `${member.sector.color}18`, color: member.sector.color, border: `1px solid ${member.sector.color}40` }}>
+                        {member.sector.icon} {member.sector.name}
                       </span>
-                    ) : (
-                      <span className="text-slate-600 text-sm">—</span>
-                    )}
+                    ) : <span className="text-slate-300 text-sm">—</span>}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span
-                      className={`px-2.5 py-0.5 rounded text-xs font-semibold ${
-                        member.role === 'admin'
-                          ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-600/30'
-                          : 'bg-slate-700 text-slate-400'
-                      }`}
-                    >
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${member.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
                       {member.role === 'admin' ? 'Administrador' : 'Membro'}
                     </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <button onClick={() => openEdit(member)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
+                      <Pencil className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -176,98 +169,60 @@ export default function MembersPage() {
         )}
       </div>
 
-      {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowForm(false)} />
-          <div className="relative bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-              <h2 className="text-lg font-semibold text-white">Novo Membro</h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowForm(false)} />
+          <div className="relative bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h2 className="text-lg font-semibold text-slate-900">
+                {editingMember ? 'Editar Membro' : 'Novo Membro'}
+              </h2>
+              <button onClick={() => setShowForm(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                  Nome <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Nome completo"
-                  required
-                  className="w-full bg-slate-900 border border-slate-600 text-slate-100 placeholder-slate-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
+                <label className={labelClass}>Nome <span className="text-red-500">*</span></label>
+                <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nome completo" required className={inputClass} />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                  Email <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="email@exemplo.com"
-                  required
-                  className="w-full bg-slate-900 border border-slate-600 text-slate-100 placeholder-slate-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
+                <label className={labelClass}>Email <span className="text-red-500">*</span></label>
+                <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="email@exemplo.com" required disabled={!!editingMember} className={`${inputClass} ${editingMember ? 'opacity-50 cursor-not-allowed' : ''}`} />
+                {editingMember && <p className="text-xs text-slate-400 mt-1">O email não pode ser alterado.</p>}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                  Senha <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder="Mínimo 6 caracteres"
-                  required
-                  minLength={6}
-                  className="w-full bg-slate-900 border border-slate-600 text-slate-100 placeholder-slate-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
+              {!editingMember && (
+                <div>
+                  <label className={labelClass}>Senha <span className="text-red-500">*</span></label>
+                  <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Mínimo 6 caracteres" required minLength={6} className={inputClass} />
+                </div>
+              )}
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Setor</label>
-                <select
-                  value={form.sector_id}
-                  onChange={(e) => setForm({ ...form, sector_id: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-600 text-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
+                <label className={labelClass}>Setor</label>
+                <select value={form.sector_id} onChange={e => setForm({ ...form, sector_id: e.target.value })} className={inputClass}>
                   <option value="">Selecionar setor</option>
-                  {sectors.map((s) => (
-                    <option key={s.id} value={s.id}>{s.icon} {s.name}</option>
-                  ))}
+                  {sectors.map(s => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Perfil</label>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value as MemberRole })}
-                  className="w-full bg-slate-900 border border-slate-600 text-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
+                <label className={labelClass}>Perfil</label>
+                <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value as MemberRole })} className={inputClass}>
                   <option value="member">Membro</option>
                   <option value="admin">Administrador</option>
                 </select>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2 border-t border-slate-700">
-                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors">
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-semibold rounded-lg text-sm transition-colors"
-                >
+                <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm">
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Criar Membro
+                  {editingMember ? 'Salvar' : 'Criar Membro'}
                 </button>
               </div>
             </form>

@@ -6,7 +6,15 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import TaskCard from '@/components/tasks/TaskCard'
 import TaskForm from '@/components/tasks/TaskForm'
-import type { TaskWithRelations, Sector, TeamMember, Priority } from '@/lib/types'
+import type { TaskWithRelations, Sector, TeamMember, Priority, TaskStatus } from '@/lib/types'
+
+function calcTaskStatus(subtasks: { status: string }[]): TaskStatus {
+  if (subtasks.length === 0) return 'pending'
+  const completed = subtasks.filter(s => s.status === 'completed').length
+  if (completed === 0) return 'pending'
+  if (completed === subtasks.length) return 'completed'
+  return 'in_progress'
+}
 
 export default function TasksPage() {
   const supabase = useMemo(() => createClient(), [])
@@ -17,8 +25,8 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingTask, setEditingTask] = useState<TaskWithRelations | null>(null)
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
 
-  // Filters
   const [search, setSearch] = useState('')
   const [filterSector, setFilterSector] = useState('')
   const [filterResponsible, setFilterResponsible] = useState('')
@@ -28,21 +36,11 @@ export default function TasksPage() {
 
   const fetchTasks = useCallback(async () => {
     setLoading(true)
-    const query = supabase
+    const { data } = await supabase
       .from('tasks')
-      .select(`
-        *,
-        sector:sectors(*),
-        responsible:team_members!tasks_responsible_id_fkey(*),
-        subtasks(
-          *,
-          responsible:team_members!subtasks_responsible_id_fkey(*)
-        )
-      `)
+      .select(`*, sector:sectors(*), responsible:team_members!tasks_responsible_id_fkey(*), subtasks(*, responsible:team_members!subtasks_responsible_id_fkey(*))`)
       .eq('archived', showArchived)
       .order('created_at', { ascending: false })
-
-    const { data } = await query
     setTasks((data as TaskWithRelations[]) ?? [])
     setLoading(false)
   }, [supabase, showArchived])
@@ -55,67 +53,74 @@ export default function TasksPage() {
 
   async function handleToggleSubtask(subtaskId: string, currentStatus: 'pending' | 'completed') {
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed'
-    const { error } = await supabase
+    const { error } = await supabase.from('subtasks').update({ status: newStatus }).eq('id', subtaskId)
+    if (error) { toast.error('Erro ao atualizar subtarefa.'); return }
+
+    // Atualização otimista — sem refetch, sem recolher
+    setTasks(prev => prev.map(task => {
+      if (!task.subtasks.some(s => s.id === subtaskId)) return task
+      const updatedSubtasks = task.subtasks.map(s => s.id === subtaskId ? { ...s, status: newStatus } : s)
+      const newTaskStatus = calcTaskStatus(updatedSubtasks)
+      supabase.from('tasks').update({ status: newTaskStatus }).eq('id', task.id)
+      return { ...task, subtasks: updatedSubtasks, status: newTaskStatus }
+    }))
+  }
+
+  async function handleAddSubtask(taskId: string, title: string) {
+    const { data, error } = await supabase
       .from('subtasks')
-      .update({ status: newStatus })
-      .eq('id', subtaskId)
+      .insert({ task_id: taskId, title, sort_order: 999 })
+      .select('*, responsible:team_members!subtasks_responsible_id_fkey(*)')
+      .single()
+    if (error) { toast.error('Erro ao adicionar subtarefa.'); return }
 
-    if (error) {
-      toast.error('Erro ao atualizar subtarefa.')
-      return
-    }
+    setTasks(prev => prev.map(task => {
+      if (task.id !== taskId) return task
+      const updatedSubtasks = [...task.subtasks, data]
+      const newTaskStatus = calcTaskStatus(updatedSubtasks)
+      supabase.from('tasks').update({ status: newTaskStatus }).eq('id', taskId)
+      return { ...task, subtasks: updatedSubtasks, status: newTaskStatus }
+    }))
+  }
 
-    // Update task updated_at
-    const task = tasks.find((t) => t.subtasks.some((s) => s.id === subtaskId))
-    if (task) {
-      await supabase
-        .from('tasks')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', task.id)
-    }
+  async function handleDeleteSubtask(subtaskId: string, taskId: string) {
+    const { error } = await supabase.from('subtasks').delete().eq('id', subtaskId)
+    if (error) { toast.error('Erro ao excluir subtarefa.'); return }
 
-    fetchTasks()
+    setTasks(prev => prev.map(task => {
+      if (task.id !== taskId) return task
+      const updatedSubtasks = task.subtasks.filter(s => s.id !== subtaskId)
+      const newTaskStatus = calcTaskStatus(updatedSubtasks)
+      supabase.from('tasks').update({ status: newTaskStatus }).eq('id', taskId)
+      return { ...task, subtasks: updatedSubtasks, status: newTaskStatus }
+    }))
   }
 
   async function handleDelete(taskId: string) {
     if (!confirm('Deseja realmente excluir esta tarefa?')) return
-
     const { error } = await supabase.from('tasks').delete().eq('id', taskId)
-    if (error) {
-      toast.error('Erro ao excluir tarefa.')
-      return
-    }
+    if (error) { toast.error('Erro ao excluir tarefa.'); return }
     toast.success('Tarefa excluída.')
-    fetchTasks()
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+    if (expandedTaskId === taskId) setExpandedTaskId(null)
   }
 
   async function handleArchive(taskId: string, archive: boolean) {
-    const { error } = await supabase
-      .from('tasks')
-      .update({ archived: archive })
-      .eq('id', taskId)
-    if (error) {
-      toast.error('Erro ao arquivar tarefa.')
-      return
-    }
+    const { error } = await supabase.from('tasks').update({ archived: archive }).eq('id', taskId)
+    if (error) { toast.error('Erro ao arquivar tarefa.'); return }
     toast.success(archive ? 'Tarefa arquivada.' : 'Tarefa restaurada.')
-    fetchTasks()
+    setTasks(prev => prev.filter(t => t.id !== taskId))
   }
 
-  function handleEdit(task: TaskWithRelations) {
-    setEditingTask(task)
-    setShowForm(true)
+  function handleEdit(task: TaskWithRelations) { setEditingTask(task); setShowForm(true) }
+  function handleCloseForm() { setShowForm(false); setEditingTask(null) }
+  function handleToggleExpand(taskId: string) {
+    setExpandedTaskId(prev => prev === taskId ? null : taskId)
   }
 
-  function handleCloseForm() {
-    setShowForm(false)
-    setEditingTask(null)
-  }
-
-  // Filter + sort
   const priorityOrder: Record<Priority, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
   const filtered = tasks
-    .filter((t) => {
+    .filter(t => {
       if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
       if (filterSector && t.sector_id !== filterSector) return false
       if (filterResponsible && t.responsible_id !== filterResponsible) return false
@@ -131,25 +136,26 @@ export default function TasksPage() {
       return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
     })
 
-  const selectClass = "bg-slate-800 border border-slate-700 text-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  const selectClass = "bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-slate-900">
             {showArchived ? 'Tarefas Arquivadas' : 'Tarefas'}
           </h1>
-          <p className="text-slate-400 text-sm mt-1">{filtered.length} tarefa{filtered.length !== 1 ? 's' : ''} encontrada{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-slate-500 text-sm mt-1">
+            {filtered.length} tarefa{filtered.length !== 1 ? 's' : ''} encontrada{filtered.length !== 1 ? 's' : ''}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowArchived((v) => !v)}
+            onClick={() => setShowArchived(v => !v)}
             className={`flex items-center gap-2 px-4 py-2 font-semibold rounded-lg text-sm transition-colors border ${
               showArchived
-                ? 'bg-amber-600/20 border-amber-600/40 text-amber-400 hover:bg-amber-600/30'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
+                : 'bg-white border-slate-200 text-slate-600 hover:text-slate-800 hover:border-slate-300 shadow-sm'
             }`}
           >
             <Archive className="w-4 h-4" />
@@ -158,7 +164,7 @@ export default function TasksPage() {
           {!showArchived && (
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-sm transition-colors shadow-lg shadow-indigo-500/20"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" />
               Nova Tarefa
@@ -168,48 +174,39 @@ export default function TasksPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
           <Filter className="w-4 h-4 text-slate-400" />
-          <span className="text-sm font-medium text-slate-300">Filtros</span>
+          <span className="text-sm font-medium text-slate-600">Filtros</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* Search */}
           <div className="relative lg:col-span-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar por título..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onChange={e => setSearch(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-
-          <select value={filterSector} onChange={(e) => setFilterSector(e.target.value)} className={selectClass}>
+          <select value={filterSector} onChange={e => setFilterSector(e.target.value)} className={selectClass}>
             <option value="">Todos os setores</option>
-            {sectors.map((s) => (
-              <option key={s.id} value={s.id}>{s.icon} {s.name}</option>
-            ))}
+            {sectors.map(s => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
           </select>
-
-          <select value={filterResponsible} onChange={(e) => setFilterResponsible(e.target.value)} className={selectClass}>
+          <select value={filterResponsible} onChange={e => setFilterResponsible(e.target.value)} className={selectClass}>
             <option value="">Todos os responsáveis</option>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
+            {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
-
           <div className="grid grid-cols-2 gap-2">
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={selectClass}>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={selectClass}>
               <option value="">Status</option>
               <option value="pending">Pendente</option>
               <option value="in_progress">Em Andamento</option>
               <option value="completed">Concluída</option>
               <option value="cancelled">Cancelada</option>
             </select>
-
-            <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className={selectClass}>
+            <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className={selectClass}>
               <option value="">Prioridade</option>
               <option value="urgent">Urgente</option>
               <option value="high">Alta</option>
@@ -220,38 +217,37 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* Task list */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 bg-slate-800 border border-slate-700 rounded-xl">
-          <p className="text-slate-400 text-lg font-medium">Nenhuma tarefa encontrada</p>
-          <p className="text-slate-600 text-sm mt-1">Tente ajustar os filtros ou crie uma nova tarefa.</p>
+        <div className="text-center py-16 bg-white border border-slate-200 rounded-xl shadow-sm">
+          <p className="text-slate-500 text-lg font-medium">Nenhuma tarefa encontrada</p>
+          <p className="text-slate-400 text-sm mt-1">Tente ajustar os filtros ou crie uma nova tarefa.</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((task) => (
+          {filtered.map(task => (
             <TaskCard
               key={task.id}
               task={task}
+              isExpanded={expandedTaskId === task.id}
+              onToggleExpand={handleToggleExpand}
               onToggleSubtask={handleToggleSubtask}
+              onAddSubtask={handleAddSubtask}
+              onDeleteSubtask={handleDeleteSubtask}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onArchive={handleArchive}
+              members={members}
             />
           ))}
         </div>
       )}
 
-      {/* Form modal */}
       {showForm && (
-        <TaskForm
-          task={editingTask}
-          onClose={handleCloseForm}
-          onSaved={fetchTasks}
-        />
+        <TaskForm task={editingTask} onClose={handleCloseForm} onSaved={fetchTasks} />
       )}
     </div>
   )

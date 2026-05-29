@@ -20,10 +20,10 @@ export function getPriorityLabel(priority: Priority): string {
 
 export function getPriorityColor(priority: Priority): string {
   const colors: Record<Priority, string> = {
-    low: 'bg-slate-600 text-slate-200',
-    medium: 'bg-blue-600 text-blue-100',
-    high: 'bg-amber-600 text-amber-100',
-    urgent: 'bg-red-600 text-red-100',
+    low: 'bg-slate-100 text-slate-600',
+    medium: 'bg-blue-100 text-blue-700',
+    high: 'bg-amber-100 text-amber-700',
+    urgent: 'bg-red-100 text-red-700',
   }
   return colors[priority]
 }
@@ -40,10 +40,10 @@ export function getStatusLabel(status: TaskStatus): string {
 
 export function getStatusColor(status: TaskStatus): string {
   const colors: Record<TaskStatus, string> = {
-    pending: 'bg-slate-600 text-slate-200',
-    in_progress: 'bg-indigo-600 text-indigo-100',
-    completed: 'bg-green-700 text-green-100',
-    cancelled: 'bg-slate-700 text-slate-400',
+    pending: 'bg-slate-100 text-slate-600',
+    in_progress: 'bg-indigo-100 text-indigo-700',
+    completed: 'bg-green-100 text-green-700',
+    cancelled: 'bg-red-100 text-red-600',
   }
   return colors[status]
 }
