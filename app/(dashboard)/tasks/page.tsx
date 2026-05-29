@@ -126,6 +126,7 @@ export default function TasksPage() {
   }
 
   async function handleDeleteSubtask(subtaskId: string, taskId: string) {
+    if (!confirm('Deseja realmente excluir esta subtarefa?')) return
     const { error } = await supabase.from('subtasks').delete().eq('id', subtaskId)
     if (error) { toast.error('Erro ao excluir subtarefa.'); return }
 
