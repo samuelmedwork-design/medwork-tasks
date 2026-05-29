@@ -92,6 +92,39 @@ export default function TasksPage() {
     }))
   }
 
+  async function handleEditSubtask(subtaskId: string, title: string, responsibleId: string) {
+    const { data, error } = await supabase
+      .from('subtasks')
+      .update({ title, responsible_id: responsibleId || null })
+      .eq('id', subtaskId)
+      .select('*, responsible:team_members!subtasks_responsible_id_fkey(*)')
+      .single()
+    if (error) { toast.error('Erro ao editar subtarefa.'); return }
+
+    setTasks(prev => prev.map(task => {
+      if (!task.subtasks.some(s => s.id === subtaskId)) return task
+      return {
+        ...task,
+        subtasks: task.subtasks.map(s => s.id === subtaskId ? { ...s, ...data } : s) as TaskWithRelations['subtasks']
+      }
+    }))
+  }
+
+  async function handleReorderSubtasks(taskId: string, orderedIds: string[]) {
+    setTasks(prev => prev.map(task => {
+      if (task.id !== taskId) return task
+      const reordered = orderedIds.map((id, i) => {
+        const s = task.subtasks.find(s => s.id === id)!
+        return { ...s, sort_order: i }
+      }) as TaskWithRelations['subtasks']
+      return { ...task, subtasks: reordered }
+    }))
+    // Persist order to DB
+    await Promise.all(
+      orderedIds.map((id, i) => supabase.from('subtasks').update({ sort_order: i }).eq('id', id))
+    )
+  }
+
   async function handleDeleteSubtask(subtaskId: string, taskId: string) {
     const { error } = await supabase.from('subtasks').delete().eq('id', subtaskId)
     if (error) { toast.error('Erro ao excluir subtarefa.'); return }
@@ -263,6 +296,8 @@ export default function TasksPage() {
               onToggleExpand={handleToggleExpand}
               onToggleSubtask={handleToggleSubtask}
               onAddSubtask={handleAddSubtask}
+              onEditSubtask={handleEditSubtask}
+              onReorderSubtasks={handleReorderSubtasks}
               onDeleteSubtask={handleDeleteSubtask}
               onEdit={handleEdit}
               onDelete={handleDelete}

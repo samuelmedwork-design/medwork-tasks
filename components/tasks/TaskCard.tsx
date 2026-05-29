@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   ChevronDown, ChevronRight, Calendar, User, Pencil, Trash2,
-  CheckSquare, Square, Archive, ArchiveRestore, Plus, X, Check,
+  CheckSquare, Square, Archive, ArchiveRestore, Plus, X, Check, GripVertical,
 } from 'lucide-react'
 import { cn, getPriorityColor, getPriorityLabel, getStatusColor, getStatusLabel, calculateProgress, getInitials, formatDate, getDueDateStatus } from '@/lib/utils'
 import type { TaskWithRelations, TeamMember } from '@/lib/types'
@@ -14,6 +14,8 @@ interface TaskCardProps {
   onToggleExpand: (taskId: string) => void
   onToggleSubtask: (subtaskId: string, currentStatus: 'pending' | 'completed') => void
   onAddSubtask: (taskId: string, title: string, responsibleId: string) => Promise<void>
+  onEditSubtask: (subtaskId: string, title: string, responsibleId: string) => Promise<void>
+  onReorderSubtasks: (taskId: string, orderedIds: string[]) => void
   onDeleteSubtask: (subtaskId: string, taskId: string) => void
   onEdit: (task: TaskWithRelations) => void
   onDelete: (taskId: string) => void
@@ -22,13 +24,64 @@ interface TaskCardProps {
 }
 
 export default function TaskCard({
-  task, isExpanded, onToggleExpand, onToggleSubtask, onAddSubtask,
-  onDeleteSubtask, onEdit, onDelete, onArchive, members,
+  task, isExpanded, onToggleExpand, onToggleSubtask, onAddSubtask, onEditSubtask,
+  onReorderSubtasks, onDeleteSubtask, onEdit, onDelete, onArchive, members,
 }: TaskCardProps) {
   const [addingSubtask, setAddingSubtask] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
   const [newSubtaskResponsible, setNewSubtaskResponsible] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editResponsible, setEditResponsible] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  function startEdit(subtaskId: string, currentTitle: string, currentResponsibleId: string | null) {
+    setEditingSubtaskId(subtaskId)
+    setEditTitle(currentTitle)
+    setEditResponsible(currentResponsibleId ?? '')
+    setAddingSubtask(false)
+  }
+
+  function cancelEdit() {
+    setEditingSubtaskId(null)
+    setEditTitle('')
+    setEditResponsible('')
+  }
+
+  async function handleSaveEdit() {
+    if (!editTitle.trim() || savingEdit || !editingSubtaskId) return
+    setSavingEdit(true)
+    await onEditSubtask(editingSubtaskId, editTitle.trim(), editResponsible)
+    setEditingSubtaskId(null)
+    setSavingEdit(false)
+  }
+
+  // Drag-to-reorder
+  const dragId = useRef<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+
+  function handleDragStart(id: string) { dragId.current = id }
+  function handleDragOver(e: React.DragEvent, id: string) {
+    e.preventDefault()
+    if (dragId.current !== id) setDragOverId(id)
+  }
+  function handleDrop(e: React.DragEvent, targetId: string) {
+    e.preventDefault()
+    const sourceId = dragId.current
+    if (!sourceId || sourceId === targetId) { setDragOverId(null); return }
+    const sorted = task.subtasks.slice().sort((a, b) => a.sort_order - b.sort_order)
+    const sourceIdx = sorted.findIndex(s => s.id === sourceId)
+    const targetIdx = sorted.findIndex(s => s.id === targetId)
+    const reordered = [...sorted]
+    const [moved] = reordered.splice(sourceIdx, 1)
+    reordered.splice(targetIdx, 0, moved)
+    onReorderSubtasks(task.id, reordered.map(s => s.id))
+    dragId.current = null
+    setDragOverId(null)
+  }
+  function handleDragEnd() { dragId.current = null; setDragOverId(null) }
 
   const progress = calculateProgress(task.subtasks)
   const dueDateStatus = getDueDateStatus(task.due_date, task.status)
@@ -168,7 +221,23 @@ export default function TaskCard({
               .slice()
               .sort((a, b) => a.sort_order - b.sort_order)
               .map(subtask => (
-                <div key={subtask.id} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white transition-colors group">
+                <div
+                  key={subtask.id}
+                  draggable
+                  onDragStart={() => handleDragStart(subtask.id)}
+                  onDragOver={e => handleDragOver(e, subtask.id)}
+                  onDrop={e => handleDrop(e, subtask.id)}
+                  onDragEnd={handleDragEnd}
+                  className={cn(
+                    'flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors group',
+                    dragOverId === subtask.id ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-white',
+                    editingSubtaskId === subtask.id ? 'bg-white border border-slate-200 shadow-sm' : ''
+                  )}
+                >
+                  {/* Drag handle */}
+                  <GripVertical className="w-3.5 h-3.5 text-slate-300 cursor-grab active:cursor-grabbing flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  {/* Checkbox */}
                   <button
                     onClick={() => onToggleSubtask(subtask.id, subtask.status as 'pending' | 'completed')}
                     className="flex-shrink-0 transition-colors"
@@ -178,19 +247,59 @@ export default function TaskCard({
                       : <Square className="w-4 h-4 text-slate-400 hover:text-indigo-500" />
                     }
                   </button>
-                  <span className={cn('flex-1 text-sm', subtask.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-700')}>
-                    {subtask.title}
-                  </span>
-                  {subtask.responsible && (
-                    <span className="text-xs text-slate-400 flex-shrink-0">{subtask.responsible.name}</span>
+
+                  {editingSubtaskId === subtask.id ? (
+                    /* Edit mode */
+                    <div className="flex-1 flex items-center gap-2">
+                      <input
+                        autoFocus
+                        value={editTitle}
+                        onChange={e => setEditTitle(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') cancelEdit() }}
+                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <select
+                        value={editResponsible}
+                        onChange={e => setEditResponsible(e.target.value)}
+                        className="w-36 bg-slate-50 border border-slate-200 text-slate-600 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">Sem responsável</option>
+                        {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                      </select>
+                      <button onClick={handleSaveEdit} disabled={savingEdit || !editTitle.trim()} className="p-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-md transition-colors">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={cancelEdit} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-md transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    /* View mode */
+                    <>
+                      <span className={cn('flex-1 text-sm', subtask.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-700')}>
+                        {subtask.title}
+                      </span>
+                      {subtask.responsible && (
+                        <span className="text-xs text-slate-400 flex-shrink-0 hidden sm:block">{subtask.responsible.name}</span>
+                      )}
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => startEdit(subtask.id, subtask.title, subtask.responsible_id)}
+                          className="p-1 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded transition-colors"
+                          title="Editar subtarefa"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteSubtask(subtask.id, task.id)}
+                          className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                          title="Remover subtarefa"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </>
                   )}
-                  <button
-                    onClick={() => onDeleteSubtask(subtask.id, task.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-all"
-                    title="Remover subtarefa"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               ))}
 
