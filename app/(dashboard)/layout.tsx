@@ -24,7 +24,8 @@ export default async function DashboardLayout({
     .single()
 
   if (!member) {
-    redirect('/login')
+    await supabase.auth.signOut()
+    redirect('/login?erro=nao_cadastrado')
   }
 
   return (
