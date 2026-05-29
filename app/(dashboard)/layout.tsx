@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import Sidebar from '@/components/layout/Sidebar'
 
 export default async function DashboardLayout({
@@ -17,14 +18,15 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
-  const { data: member } = await supabase
+  // Usa service role para bypassar RLS na verificação de autorização
+  const adminClient = createAdminClient()
+  const { data: member } = await adminClient
     .from('team_members')
     .select('*')
     .eq('auth_user_id', user.id)
     .single()
 
   if (!member) {
-    await supabase.auth.signOut()
     redirect('/login?erro=nao_cadastrado')
   }
 
