@@ -197,7 +197,10 @@ export default function TaskCard({
             {/* Add subtask inline */}
             {!addingSubtask ? (
               <button
-                onClick={() => setAddingSubtask(true)}
+                onClick={() => {
+                  setNewSubtaskResponsible(task.responsible_id ?? '')
+                  setAddingSubtask(true)
+                }}
                 className="flex items-center gap-2 w-full px-2 py-2 text-sm text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-colors mt-1"
               >
                 <Plus className="w-4 h-4" />
