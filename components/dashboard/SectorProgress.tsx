@@ -1,49 +1,27 @@
 import type { SectorProgress } from '@/lib/types'
 
-interface SectorProgressProps {
-  sectors: SectorProgress[]
-}
-
-export default function SectorProgressList({ sectors }: SectorProgressProps) {
+export default function SectorProgressList({ sectors }: { sectors: SectorProgress[] }) {
   if (sectors.length === 0) {
-    return (
-      <div className="text-center py-8 text-slate-500 text-sm">
-        Nenhum setor com tarefas encontrado.
-      </div>
-    )
+    return <div className="text-center py-8 text-slate-400 text-sm">Nenhum setor com tarefas.</div>
   }
 
   return (
     <div className="space-y-4">
       {sectors.map(({ sector, total, completed, percentage }) => (
-        <div key={sector.id} className="flex items-center gap-4">
-          <div
-            className="w-3 h-3 rounded-full flex-shrink-0"
-            style={{ backgroundColor: sector.color }}
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2">
-                <span className="text-sm">{sector.icon}</span>
-                <span className="text-sm font-medium text-slate-200 truncate">{sector.name}</span>
-              </div>
-              <span className="text-xs text-slate-500 flex-shrink-0 ml-2">
-                {completed} de {total}
-              </span>
+        <div key={sector.id}>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: sector.color }} />
+              <span className="text-sm font-medium text-slate-700">{sector.icon} {sector.name}</span>
             </div>
-            <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${percentage}%`,
-                  backgroundColor: sector.color,
-                }}
-              />
-            </div>
+            <span className="text-xs text-slate-400">{completed}/{total}</span>
           </div>
-          <span className="text-sm font-semibold text-slate-300 w-10 text-right flex-shrink-0">
-            {percentage}%
-          </span>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percentage}%`, backgroundColor: sector.color }} />
+            </div>
+            <span className="text-xs font-semibold text-slate-600 w-9 text-right">{percentage}%</span>
+          </div>
         </div>
       ))}
     </div>

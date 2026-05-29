@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, Search, Filter, Loader2, Archive } from 'lucide-react'
+import { Plus, Search, Filter, Loader2, Archive, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import TaskCard from '@/components/tasks/TaskCard'
@@ -27,6 +27,8 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<TaskWithRelations | null>(null)
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
 
+  const [currentMemberId, setCurrentMemberId] = useState<string | null>(null)
+  const [showMyTasks, setShowMyTasks] = useState(false)
   const [search, setSearch] = useState('')
   const [filterSector, setFilterSector] = useState('')
   const [filterResponsible, setFilterResponsible] = useState('')
@@ -49,6 +51,11 @@ export default function TasksPage() {
     fetchTasks()
     supabase.from('sectors').select('*').order('name').then(({ data }) => setSectors(data ?? []))
     supabase.from('team_members').select('*').order('name').then(({ data }) => setMembers(data ?? []))
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('team_members').select('id').eq('auth_user_id', user.id).single()
+        .then(({ data }) => setCurrentMemberId(data?.id ?? null))
+    })
   }, [fetchTasks])
 
   async function handleToggleSubtask(subtaskId: string, currentStatus: 'pending' | 'completed') {
@@ -123,6 +130,11 @@ export default function TasksPage() {
   const priorityOrder: Record<Priority, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
   const filtered = tasks
     .filter(t => {
+      if (showMyTasks && currentMemberId) {
+        const isMine = t.responsible_id === currentMemberId ||
+          t.subtasks.some(s => s.responsible_id === currentMemberId)
+        if (!isMine) return false
+      }
       if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
       if (filterSector && t.sector_id !== filterSector) return false
       if (filterResponsible && t.responsible_id !== filterResponsible) return false
@@ -151,7 +163,20 @@ export default function TasksPage() {
             {filtered.length} tarefa{filtered.length !== 1 ? 's' : ''} encontrada{filtered.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {currentMemberId && (
+            <button
+              onClick={() => setShowMyTasks(v => !v)}
+              className={`flex items-center gap-2 px-4 py-2 font-semibold rounded-lg text-sm transition-colors border ${
+                showMyTasks
+                  ? 'bg-indigo-600 border-indigo-600 text-white'
+                  : 'bg-white border-slate-200 text-slate-600 hover:text-slate-800 hover:border-slate-300 shadow-sm'
+              }`}
+            >
+              <User className="w-4 h-4" />
+              Minhas Tarefas
+            </button>
+          )}
           <button
             onClick={() => setShowArchived(v => !v)}
             className={`flex items-center gap-2 px-4 py-2 font-semibold rounded-lg text-sm transition-colors border ${

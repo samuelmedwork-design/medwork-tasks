@@ -78,3 +78,22 @@ export interface SectorProgress {
   completed: number
   percentage: number
 }
+
+export interface MemberWorkload {
+  member: TeamMember
+  open: number
+  overdue: number
+  completed: number
+}
+
+export interface WeeklySummary {
+  completedThisWeek: number
+  createdThisWeek: number
+  overdue: number
+}
+
+export interface MonthlyStats {
+  created: number
+  completed: number
+  rate: number
+}
