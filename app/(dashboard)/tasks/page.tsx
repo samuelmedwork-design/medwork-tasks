@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import TaskCard from '@/components/tasks/TaskCard'
 import TaskForm from '@/components/tasks/TaskForm'
-import type { TaskWithRelations, Sector, TeamMember, Priority, TaskStatus } from '@/lib/types'
+import type { TaskWithRelations, Sector, TeamMember, Priority, TaskStatus, SubtaskStatus } from '@/lib/types'
 
 function calcTaskStatus(subtasks: { status: string }[]): TaskStatus {
   if (subtasks.length === 0) return 'pending'
@@ -52,14 +52,16 @@ export default function TasksPage() {
   }, [fetchTasks])
 
   async function handleToggleSubtask(subtaskId: string, currentStatus: 'pending' | 'completed') {
-    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed'
+    const newStatus: SubtaskStatus = currentStatus === 'completed' ? 'pending' : 'completed'
     const { error } = await supabase.from('subtasks').update({ status: newStatus }).eq('id', subtaskId)
     if (error) { toast.error('Erro ao atualizar subtarefa.'); return }
 
     // Atualização otimista — sem refetch, sem recolher
     setTasks(prev => prev.map(task => {
       if (!task.subtasks.some(s => s.id === subtaskId)) return task
-      const updatedSubtasks = task.subtasks.map(s => s.id === subtaskId ? { ...s, status: newStatus } : s)
+      const updatedSubtasks = task.subtasks.map(s =>
+        s.id === subtaskId ? { ...s, status: newStatus } : s
+      ) as TaskWithRelations['subtasks']
       const newTaskStatus = calcTaskStatus(updatedSubtasks)
       supabase.from('tasks').update({ status: newTaskStatus }).eq('id', task.id)
       return { ...task, subtasks: updatedSubtasks, status: newTaskStatus }
@@ -76,7 +78,7 @@ export default function TasksPage() {
 
     setTasks(prev => prev.map(task => {
       if (task.id !== taskId) return task
-      const updatedSubtasks = [...task.subtasks, data]
+      const updatedSubtasks = [...task.subtasks, data] as TaskWithRelations['subtasks']
       const newTaskStatus = calcTaskStatus(updatedSubtasks)
       supabase.from('tasks').update({ status: newTaskStatus }).eq('id', taskId)
       return { ...task, subtasks: updatedSubtasks, status: newTaskStatus }
