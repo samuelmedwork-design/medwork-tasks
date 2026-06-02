@@ -71,15 +71,41 @@ export default function TaskComments({ taskId, currentMemberId }: TaskCommentsPr
   async function handleSend() {
     if (!text.trim() || sending || !currentMemberId) return
     setSending(true)
-    await supabase.from('task_comments').insert({
-      task_id: taskId,
-      author_id: currentMemberId,
-      content: text.trim(),
-    })
-    setText('')
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
+    const content = text.trim()
+
+    const { data: inserted } = await supabase
+      .from('task_comments')
+      .insert({ task_id: taskId, author_id: currentMemberId, content })
+      .select('*, author:team_members(*)')
+      .single()
+
+    // Disparar notificação para @menções
+    if (inserted) {
+      const mentions = content.match(/@(\w+)/g) ?? []
+      if (mentions.length > 0) {
+        const { data: allMembers } = await supabase.from('team_members').select('id,name')
+        for (const mention of mentions) {
+          const firstName = mention.slice(1).toLowerCase()
+          const found = allMembers?.find(m => m.name.split(' ')[0].toLowerCase() === firstName)
+          if (found && found.id !== currentMemberId) {
+            fetch('/api/email/notify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'comment_mention',
+                taskId,
+                mentionedMemberId: found.id,
+                commentContent: content,
+                authorName: inserted.author?.name ?? 'Alguém',
+              }),
+            }).catch(() => {})
+          }
+        }
+      }
     }
+
+    setText('')
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
     setSending(false)
   }
 

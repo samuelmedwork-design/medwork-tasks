@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, ClipboardList, Building2, Users, LogOut, ChevronRight, Sun, Moon } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Building2, Users, LogOut, ChevronRight, Sun, Moon, Settings } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/components/layout/ThemeProvider'
@@ -20,6 +20,7 @@ const navItems = [
 const adminItems = [
   { href: '/admin/sectors', label: 'Setores', icon: Building2 },
   { href: '/admin/members', label: 'Membros', icon: Users },
+  { href: '/admin/settings', label: 'Configurações', icon: Settings },
 ]
 
 export default function Sidebar({ currentUser }: SidebarProps) {

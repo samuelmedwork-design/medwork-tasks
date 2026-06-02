@@ -159,6 +159,15 @@ export default function TaskForm({ task, onClose, onSaved }: TaskFormProps) {
         }
       }
 
+      // Notificar responsável se foi atribuído (tarefa nova ou responsável mudou)
+      if (taskId && responsibleId && responsibleId !== task?.responsible_id) {
+        fetch('/api/email/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'task_assigned', taskId }),
+        }).catch(() => {})
+      }
+
       toast.success(task ? 'Tarefa atualizada com sucesso!' : 'Tarefa criada com sucesso!')
       onSaved()
       onClose()
