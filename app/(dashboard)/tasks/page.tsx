@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus, Search, Filter, Loader2, Archive, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { addDays, addMonths, format, parseISO } from 'date-fns'
 import TaskCard from '@/components/tasks/TaskCard'
 import TaskForm from '@/components/tasks/TaskForm'
 import type { TaskWithRelations, Sector, TeamMember, Priority, TaskStatus, SubtaskStatus } from '@/lib/types'
@@ -64,6 +65,7 @@ export default function TasksPage() {
     if (error) { toast.error('Erro ao atualizar subtarefa.'); return }
 
     // Atualização otimista — sem refetch, sem recolher
+    let completedRecurringTask: TaskWithRelations | null = null
     setTasks(prev => prev.map(task => {
       if (!task.subtasks.some(s => s.id === subtaskId)) return task
       const updatedSubtasks = task.subtasks.map(s =>
@@ -71,8 +73,14 @@ export default function TasksPage() {
       ) as TaskWithRelations['subtasks']
       const newTaskStatus = calcTaskStatus(updatedSubtasks)
       supabase.from('tasks').update({ status: newTaskStatus }).eq('id', task.id)
+      // Detecta se tarefa recorrente foi concluída agora
+      if (newTaskStatus === 'completed' && task.status !== 'completed' && task.recurrence_type !== 'none') {
+        completedRecurringTask = { ...task, subtasks: updatedSubtasks, status: newTaskStatus }
+      }
       return { ...task, subtasks: updatedSubtasks, status: newTaskStatus }
     }))
+    // Fora do setTasks para não bloquear a UI
+    if (completedRecurringTask) createNextOccurrence(completedRecurringTask)
   }
 
   async function handleAddSubtask(taskId: string, title: string, responsibleId: string) {
@@ -153,6 +161,45 @@ export default function TasksPage() {
     if (error) { toast.error('Erro ao arquivar tarefa.'); return }
     toast.success(archive ? 'Tarefa arquivada.' : 'Tarefa restaurada.')
     setTasks(prev => prev.filter(t => t.id !== taskId))
+  }
+
+  async function createNextOccurrence(task: TaskWithRelations) {
+    const { recurrence_type, recurrence_end_date, due_date } = task
+    if (!recurrence_type || recurrence_type === 'none') return
+
+    const base = due_date ? parseISO(due_date) : new Date()
+    const next = recurrence_type === 'monthly' ? addMonths(base, 1)
+      : recurrence_type === 'biweekly' ? addDays(base, 14)
+      : addDays(base, 7)
+
+    if (recurrence_end_date && next > parseISO(recurrence_end_date)) return
+
+    const { data: newTask } = await supabase.from('tasks').insert({
+      title: task.title,
+      description: task.description,
+      sector_id: task.sector_id,
+      responsible_id: task.responsible_id,
+      due_date: format(next, 'yyyy-MM-dd'),
+      priority: task.priority,
+      status: 'pending',
+      recurrence_type,
+      recurrence_end_date: recurrence_end_date ?? null,
+    }).select('id').single()
+
+    if (newTask && task.subtasks.length > 0) {
+      await supabase.from('subtasks').insert(
+        task.subtasks.map(s => ({
+          task_id: newTask.id,
+          title: s.title,
+          responsible_id: s.responsible_id,
+          sort_order: s.sort_order,
+          status: 'pending',
+        }))
+      )
+    }
+
+    toast.success('🔁 Próxima ocorrência criada automaticamente.')
+    fetchTasks()
   }
 
   function handleEdit(task: TaskWithRelations) { setEditingTask(task); setShowForm(true) }

@@ -2,6 +2,7 @@ export type Priority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled'
 export type SubtaskStatus = 'pending' | 'completed'
 export type MemberRole = 'admin' | 'member'
+export type RecurrenceType = 'none' | 'weekly' | 'biweekly' | 'monthly'
 
 export interface Sector {
   id: string
@@ -36,6 +37,8 @@ export interface Task {
   priority: Priority
   status: TaskStatus
   archived: boolean
+  recurrence_type: RecurrenceType
+  recurrence_end_date: string | null
   created_by: string | null
   created_at: string
   updated_at: string

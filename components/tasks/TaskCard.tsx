@@ -126,9 +126,14 @@ export default function TaskCard({
           <p className={cn('text-sm font-semibold truncate', task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-100')}>
             {task.title}
           </p>
-          {task.sector && (
-            <p className="text-xs text-slate-400 mt-0.5">{task.sector.icon} {task.sector.name}</p>
-          )}
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {task.sector && <span className="text-xs text-slate-400">{task.sector.icon} {task.sector.name}</span>}
+            {task.recurrence_type && task.recurrence_type !== 'none' && (
+              <span className="text-xs text-indigo-500 dark:text-indigo-400 font-medium">
+                🔁 {{ weekly: 'Semanal', biweekly: 'Quinzenal', monthly: 'Mensal' }[task.recurrence_type as 'weekly' | 'biweekly' | 'monthly']}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Responsible */}

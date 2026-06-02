@@ -5,7 +5,8 @@ import { X, Plus, Trash2, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import type { TaskWithRelations, Sector, TeamMember, Priority, TaskStatus } from '@/lib/types'
+import type { TaskWithRelations, Sector, TeamMember, Priority, TaskStatus, RecurrenceType } from '@/lib/types'
+import { RefreshCw } from 'lucide-react'
 
 interface SubtaskInput {
   id?: string
@@ -34,6 +35,8 @@ export default function TaskForm({ task, onClose, onSaved }: TaskFormProps) {
   const [dueDate, setDueDate] = useState(task?.due_date ?? '')
   const [priority, setPriority] = useState<Priority>(task?.priority ?? 'medium')
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? 'pending')
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(task?.recurrence_type ?? 'none')
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState(task?.recurrence_end_date ?? '')
   const [subtasks, setSubtasks] = useState<SubtaskInput[]>(
     task?.subtasks.map((s) => ({
       id: s.id,
@@ -87,6 +90,8 @@ export default function TaskForm({ task, onClose, onSaved }: TaskFormProps) {
         due_date: dueDate || null,
         priority,
         status,
+        recurrence_type: recurrenceType,
+        recurrence_end_date: recurrenceEndDate || null,
         updated_at: new Date().toISOString(),
       }
 
@@ -313,6 +318,43 @@ export default function TaskForm({ task, onClose, onSaved }: TaskFormProps) {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Recorrência */}
+          <div className="border border-slate-600 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-indigo-400" />
+              <label className="text-sm font-medium text-slate-300">Recorrência</label>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <select
+                value={recurrenceType}
+                onChange={e => setRecurrenceType(e.target.value as RecurrenceType)}
+                className="w-full bg-slate-900 border border-slate-600 text-slate-100 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="none">Sem recorrência</option>
+                <option value="weekly">Semanal (todo 7 dias)</option>
+                <option value="biweekly">Quinzenal (todo 14 dias)</option>
+                <option value="monthly">Mensal (todo mês)</option>
+              </select>
+              {recurrenceType !== 'none' && (
+                <div>
+                  <input
+                    type="date"
+                    value={recurrenceEndDate}
+                    onChange={e => setRecurrenceEndDate(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-600 text-slate-100 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Data de encerramento (opcional)"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Data de encerramento (opcional)</p>
+                </div>
+              )}
+            </div>
+            {recurrenceType !== 'none' && (
+              <p className="text-xs text-indigo-400">
+                ✓ Ao concluir, a próxima ocorrência será criada automaticamente.
+              </p>
+            )}
           </div>
 
           {/* Subtasks */}
