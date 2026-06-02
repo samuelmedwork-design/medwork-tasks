@@ -13,12 +13,12 @@ export default function DueSoon({ tasks }: { tasks: TaskWithRelations[] }) {
       {tasks.map(task => {
         const ds = getDueDateStatus(task.due_date, task.status)
         return (
-          <div key={task.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100 transition-colors">
+          <div key={task.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700/40 transition-colors">
             {task.sector && (
               <div className="w-1 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: task.sector.color }} />
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-800 truncate">{task.title}</p>
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{task.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 {task.sector && <span className="text-xs text-slate-400">{task.sector.icon} {task.sector.name}</span>}
                 {task.responsible && (

@@ -97,3 +97,16 @@ export interface MonthlyStats {
   completed: number
   rate: number
 }
+
+export interface TaskComment {
+  id: string
+  task_id: string
+  author_id: string
+  content: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CommentWithAuthor extends TaskComment {
+  author: TeamMember
+}

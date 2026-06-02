@@ -41,3 +41,11 @@ body {
   50% { opacity: 0.6; }
 }
 .animate-pulse-urgent { animation: pulse-urgent 1.5s ease-in-out infinite; }
+
+/* Dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+.dark body {
+  background: #0f172a;
+  color: #f1f5f9;
+}

@@ -20,13 +20,13 @@ export default function StatsCards({ stats }: { stats: DashboardStats }) {
       {cards.map(card => {
         const Icon = card.icon
         return (
-          <div key={card.label} className={`bg-white border ${card.border} rounded-xl p-5 flex items-start gap-4 shadow-sm`}>
+          <div key={card.label} className={`bg-white dark:bg-slate-800 border ${card.border} dark:border-slate-700 rounded-xl p-5 flex items-start gap-4 shadow-sm`}>
             <div className={`${card.bg} rounded-lg p-2.5 flex-shrink-0`}>
               <Icon className={`w-5 h-5 ${card.color}`} />
             </div>
             <div>
-              <p className="text-slate-500 text-sm">{card.label}</p>
-              <p className="text-3xl font-bold text-slate-900 mt-0.5">{card.value}</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">{card.label}</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white mt-0.5">{card.value}</p>
               <p className="text-slate-400 text-xs mt-1">{card.description}</p>
             </div>
           </div>

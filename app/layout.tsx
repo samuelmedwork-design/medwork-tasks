@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
+import ThemeProvider from '@/components/layout/ThemeProvider'
 import './globals.css'
 
 const inter = Inter({
@@ -20,18 +21,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`${inter.variable} h-full`}>
-      <body className="min-h-full bg-slate-900 text-slate-100 antialiased">
-        {children}
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: '#1e293b',
-              border: '1px solid #334155',
-              color: '#f1f5f9',
-            },
-          }}
-        />
+      <body className="min-h-full antialiased">
+        <ThemeProvider>
+          {children}
+          <Toaster position="top-right" richColors />
+        </ThemeProvider>
       </body>
     </html>
   )

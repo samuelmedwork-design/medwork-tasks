@@ -18,11 +18,11 @@ export default function MonthlyRate({ stats }: { stats: MonthlyStats }) {
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-sm font-bold text-slate-800">{rate}%</span>
+          <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{rate}%</span>
         </div>
       </div>
       <div>
-        <p className="text-sm font-semibold text-slate-700">Taxa de Entrega</p>
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Taxa de Entrega</p>
         <p className="text-xs text-slate-400 mt-0.5">{completed} de {created} tarefas concluídas este mês</p>
         <div className="flex items-center gap-1 mt-1.5">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />

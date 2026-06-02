@@ -184,13 +184,13 @@ export default function TasksPage() {
       return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
     })
 
-  const selectClass = "bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  const selectClass = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             {showArchived ? 'Tarefas Arquivadas' : 'Tarefas'}
           </h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -235,7 +235,7 @@ export default function TasksPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
           <Filter className="w-4 h-4 text-slate-400" />
           <span className="text-sm font-medium text-slate-600">Filtros</span>
@@ -248,7 +248,7 @@ export default function TasksPage() {
               placeholder="Buscar por título..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <select value={filterSector} onChange={e => setFilterSector(e.target.value)} className={selectClass}>
@@ -283,7 +283,7 @@ export default function TasksPage() {
           <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 bg-white border border-slate-200 rounded-xl shadow-sm">
+        <div className="text-center py-16 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
           <p className="text-slate-500 text-lg font-medium">Nenhuma tarefa encontrada</p>
           <p className="text-slate-400 text-sm mt-1">Tente ajustar os filtros ou crie uma nova tarefa.</p>
         </div>
@@ -304,6 +304,7 @@ export default function TasksPage() {
               onDelete={handleDelete}
               onArchive={handleArchive}
               members={members}
+              currentMemberId={currentMemberId}
             />
           ))}
         </div>

@@ -3,9 +3,11 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, ClipboardList, Building2, Users, LogOut, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Building2, Users, LogOut, ChevronRight, Sun, Moon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { cn, getInitials } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { useTheme } from '@/components/layout/ThemeProvider'
+import Avatar from '@/components/ui/Avatar'
 import type { TeamMember } from '@/lib/types'
 
 interface SidebarProps { currentUser: TeamMember }
@@ -23,6 +25,7 @@ const adminItems = [
 export default function Sidebar({ currentUser }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { theme, toggle } = useTheme()
 
   async function handleLogout() {
     const supabase = createClient()
@@ -88,15 +91,20 @@ export default function Sidebar({ currentUser }: SidebarProps) {
       {/* User footer */}
       <div className="px-3 py-4 border-t border-slate-800">
         <div className="flex items-center gap-3 px-3 py-2">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-600/30 text-indigo-300 flex items-center justify-center text-xs font-bold">
-            {getInitials(currentUser.name)}
-          </div>
+          <Avatar name={currentUser.name} avatarUrl={currentUser.avatar_url} size="md" className="bg-indigo-600/30 text-indigo-300" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-slate-200 truncate">{currentUser.name}</p>
             <p className="text-xs text-slate-500 truncate capitalize">
               {currentUser.role === 'admin' ? 'Administrador' : 'Membro'}
             </p>
           </div>
+          <button
+            onClick={toggle}
+            title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            className="flex-shrink-0 p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded-md transition-colors"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
           <button
             onClick={handleLogout}
             title="Sair"

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { cn, getPriorityColor, getPriorityLabel, getStatusColor, getStatusLabel, calculateProgress, getInitials, formatDate, getDueDateStatus } from '@/lib/utils'
 import type { TaskWithRelations, TeamMember } from '@/lib/types'
+import TaskComments from './TaskComments'
 
 interface TaskCardProps {
   task: TaskWithRelations
@@ -21,11 +22,12 @@ interface TaskCardProps {
   onDelete: (taskId: string) => void
   onArchive: (taskId: string, archive: boolean) => void
   members: TeamMember[]
+  currentMemberId: string | null
 }
 
 export default function TaskCard({
   task, isExpanded, onToggleExpand, onToggleSubtask, onAddSubtask, onEditSubtask,
-  onReorderSubtasks, onDeleteSubtask, onEdit, onDelete, onArchive, members,
+  onReorderSubtasks, onDeleteSubtask, onEdit, onDelete, onArchive, members, currentMemberId,
 }: TaskCardProps) {
   const [addingSubtask, setAddingSubtask] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
@@ -104,10 +106,10 @@ export default function TaskCard({
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       {/* Main row */}
       <div
-        className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-slate-50 transition-colors"
+        className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
         onClick={() => onToggleExpand(task.id)}
       >
         {/* Sector color bar */}
@@ -121,7 +123,7 @@ export default function TaskCard({
 
         {/* Title + sector */}
         <div className="flex-1 min-w-0">
-          <p className={cn('text-sm font-semibold truncate', task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800')}>
+          <p className={cn('text-sm font-semibold truncate', task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-100')}>
             {task.title}
           </p>
           {task.sector && (
@@ -133,7 +135,7 @@ export default function TaskCard({
         <div className="flex-shrink-0 hidden sm:flex items-center gap-1.5">
           {task.responsible ? (
             <>
-              <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
+              <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[10px] font-bold">
                 {getInitials(task.responsible.name)}
               </div>
               <span className="text-xs text-slate-500 hidden md:block truncate max-w-[100px]">
@@ -170,7 +172,7 @@ export default function TaskCard({
         {/* Progress bar */}
         {task.subtasks.length > 0 && (
           <div className="flex-shrink-0 hidden lg:flex items-center gap-2 w-24">
-            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
               <div className="h-full bg-indigo-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
             </div>
             <span className="text-xs text-slate-400 tabular-nums">{progress}%</span>
@@ -202,7 +204,7 @@ export default function TaskCard({
 
       {/* Expanded section */}
       {isExpanded && (
-        <div className="border-t border-slate-100 bg-slate-50/60 px-5 py-4">
+        <div className="border-t border-slate-100 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 px-5 py-4">
           {task.description && (
             <p className="text-sm text-slate-500 mb-4 pb-3 border-b border-slate-100">{task.description}</p>
           )}
@@ -210,7 +212,7 @@ export default function TaskCard({
           {task.subtasks.length > 0 && (
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Subtarefas</span>
-              <span className="text-xs text-slate-400 bg-white border border-slate-200 rounded-full px-2 py-0.5">
+              <span className="text-xs text-slate-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5">
                 {completedCount}/{task.subtasks.length}
               </span>
             </div>
@@ -230,8 +232,8 @@ export default function TaskCard({
                   onDragEnd={handleDragEnd}
                   className={cn(
                     'flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors group',
-                    dragOverId === subtask.id ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-white',
-                    editingSubtaskId === subtask.id ? 'bg-white border border-slate-200 shadow-sm' : ''
+                    dragOverId === subtask.id ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700' : 'hover:bg-white dark:hover:bg-slate-800',
+                    editingSubtaskId === subtask.id ? 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm' : ''
                   )}
                 >
                   {/* Drag handle */}
@@ -256,12 +258,12 @@ export default function TaskCard({
                         value={editTitle}
                         onChange={e => setEditTitle(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') cancelEdit() }}
-                        className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="flex-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                       <select
                         value={editResponsible}
                         onChange={e => setEditResponsible(e.target.value)}
-                        className="w-36 bg-slate-50 border border-slate-200 text-slate-600 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-36 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       >
                         <option value="">Sem responsável</option>
                         {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -276,7 +278,7 @@ export default function TaskCard({
                   ) : (
                     /* View mode */
                     <>
-                      <span className={cn('flex-1 text-sm', subtask.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-700')}>
+                      <span className={cn('flex-1 text-sm', subtask.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300')}>
                         {subtask.title}
                       </span>
                       {subtask.responsible && (
@@ -310,13 +312,13 @@ export default function TaskCard({
                   setNewSubtaskResponsible(task.responsible_id ?? '')
                   setAddingSubtask(true)
                 }}
-                className="flex items-center gap-2 w-full px-2 py-2 text-sm text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-colors mt-1"
+                className="flex items-center gap-2 w-full px-2 py-2 text-sm text-slate-400 hover:text-indigo-600 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors mt-1"
               >
                 <Plus className="w-4 h-4" />
                 Adicionar subtarefa
               </button>
             ) : (
-              <div className="mt-2 p-3 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2">
+              <div className="mt-2 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm space-y-2">
                 <input
                   type="text"
                   autoFocus
@@ -327,13 +329,13 @@ export default function TaskCard({
                     if (e.key === 'Escape') handleCancelAdd()
                   }}
                   placeholder="Nome da subtarefa..."
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 placeholder-slate-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <div className="flex items-center gap-2">
                   <select
                     value={newSubtaskResponsible}
                     onChange={e => setNewSubtaskResponsible(e.target.value)}
-                    className="flex-1 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Responsável (opcional)</option>
                     {members.map(m => (
@@ -358,6 +360,8 @@ export default function TaskCard({
               </div>
             )}
           </div>
+
+          <TaskComments taskId={task.id} currentMemberId={currentMemberId} />
         </div>
       )}
     </div>

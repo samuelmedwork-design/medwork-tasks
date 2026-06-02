@@ -21,12 +21,12 @@ export default function StaleTasks({ tasks }: { tasks: TaskWithRelations[] }) {
           (Date.now() - new Date(task.updated_at).getTime()) / (1000 * 60 * 60 * 24)
         )
         return (
-          <div key={task.id} className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+          <div key={task.id} className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-lg">
             {task.sector && (
               <div className="w-1 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: task.sector.color }} />
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-800 truncate">{task.title}</p>
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{task.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 {task.responsible ? (
                   <span className="flex items-center gap-1 text-xs text-slate-500">

@@ -118,8 +118,8 @@ export default async function DashboardPage() {
       <DashboardRealtime />
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">Visão geral das tarefas da equipe MedWork</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Visão geral das tarefas da equipe MedWork</p>
       </div>
 
       {/* Row 1: Weekly summary + Stats */}
@@ -134,17 +134,17 @@ export default async function DashboardPage() {
 
       {/* Row 2: Member workload + Sector progress */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-5">
             <Users className="w-4 h-4 text-indigo-500" />
-            <h2 className="font-semibold text-slate-800">Carga por Responsável</h2>
+            <h2 className="font-semibold text-slate-800 dark:text-slate-100">Carga por Responsável</h2>
           </div>
           <MemberWorkloadList members={memberWorkload} />
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-5">
             <TrendingUp className="w-4 h-4 text-indigo-500" />
-            <h2 className="font-semibold text-slate-800">Progresso por Setor</h2>
+            <h2 className="font-semibold text-slate-800 dark:text-slate-100">Progresso por Setor</h2>
           </div>
           <SectorProgressList sectors={sectorProgressData} />
         </div>
@@ -152,11 +152,11 @@ export default async function DashboardPage() {
 
       {/* Row 3: Due soon + Stale tasks */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-amber-500" />
-              <h2 className="font-semibold text-slate-800">Vence nos Próximos 7 Dias</h2>
+              <h2 className="font-semibold text-slate-800 dark:text-slate-100">Vence nos Próximos 7 Dias</h2>
             </div>
             <span className="text-xs font-semibold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">
               {dueSoon.length}
@@ -164,11 +164,11 @@ export default async function DashboardPage() {
           </div>
           <DueSoon tasks={dueSoon} />
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-500" />
-              <h2 className="font-semibold text-slate-800">Tarefas Paradas</h2>
+              <h2 className="font-semibold text-slate-800 dark:text-slate-100">Tarefas Paradas</h2>
               <span className="text-xs text-slate-400">&gt; 7 dias sem atualização</span>
             </div>
             {staleTasks.length > 0 && (
@@ -183,20 +183,20 @@ export default async function DashboardPage() {
 
       {/* Row 4: Monthly rate + No responsible + Priority tasks */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-5">
             <BarChart3 className="w-4 h-4 text-indigo-500" />
-            <h2 className="font-semibold text-slate-800">Taxa de Entrega</h2>
+            <h2 className="font-semibold text-slate-800 dark:text-slate-100">Taxa de Entrega</h2>
             <span className="text-xs text-slate-400">este mês</span>
           </div>
           <MonthlyRate stats={monthly} />
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <UserX className="w-4 h-4 text-red-400" />
-              <h2 className="font-semibold text-slate-800">Sem Responsável</h2>
+              <h2 className="font-semibold text-slate-800 dark:text-slate-100">Sem Responsável</h2>
             </div>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${noResponsible.length > 0 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
               {noResponsible.length}
@@ -207,12 +207,12 @@ export default async function DashboardPage() {
           ) : (
             <div className="space-y-2">
               {noResponsible.slice(0, 5).map(task => (
-                <div key={task.id} className="flex items-center gap-2 p-2 bg-red-50 border border-red-100 rounded-lg">
+                <div key={task.id} className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 rounded-lg">
                   {task.sector && (
                     <div className="w-1 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: task.sector.color }} />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-700 truncate">{task.title}</p>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{task.title}</p>
                     {task.sector && <p className="text-xs text-slate-400">{task.sector.icon} {task.sector.name}</p>}
                   </div>
                 </div>
@@ -224,10 +224,10 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-5">
             <AlertCircle className="w-4 h-4 text-amber-500" />
-            <h2 className="font-semibold text-slate-800">Tarefas Prioritárias</h2>
+            <h2 className="font-semibold text-slate-800 dark:text-slate-100">Tarefas Prioritárias</h2>
           </div>
           {urgentTasks.length === 0 ? (
             <div className="text-center py-8 text-slate-400 text-sm">Nenhuma tarefa pendente.</div>
@@ -236,10 +236,10 @@ export default async function DashboardPage() {
               {urgentTasks.map(task => {
                 const overdue = isOverdue(task.due_date, task.status)
                 return (
-                  <div key={task.id} className="flex items-start gap-2 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                  <div key={task.id} className="flex items-start gap-2 p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
                     {task.sector && <div className="w-1 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: task.sector.color }} />}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">{task.title}</p>
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{task.title}</p>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
                           {getPriorityLabel(task.priority)}
