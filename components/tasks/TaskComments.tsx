@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { X, Loader2 } from 'lucide-react'
-import { getInitials } from '@/lib/utils'
+import Avatar from '@/components/ui/Avatar'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { CommentWithAuthor } from '@/lib/types'
@@ -137,9 +137,7 @@ export default function TaskComments({ taskId, currentMemberId }: TaskCommentsPr
           )}
           {comments.map(comment => (
             <div key={comment.id} className="flex gap-2.5 group">
-              <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold flex-shrink-0 flex items-center justify-center mt-0.5">
-                {getInitials(comment.author?.name ?? '?')}
-              </div>
+              <Avatar name={comment.author?.name ?? '?'} avatarUrl={comment.author?.avatar_url} size="sm" className="mt-0.5 flex-shrink-0" />
               <div className="flex-1 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg px-3 py-2">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">

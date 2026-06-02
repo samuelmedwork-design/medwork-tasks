@@ -5,9 +5,10 @@ import {
   ChevronDown, ChevronRight, Calendar, User, Pencil, Trash2,
   CheckSquare, Square, Archive, ArchiveRestore, Plus, X, Check, GripVertical,
 } from 'lucide-react'
-import { cn, getPriorityColor, getPriorityLabel, getStatusColor, getStatusLabel, calculateProgress, getInitials, formatDate, getDueDateStatus } from '@/lib/utils'
+import { cn, getPriorityColor, getPriorityLabel, getStatusColor, getStatusLabel, calculateProgress, formatDate, getDueDateStatus } from '@/lib/utils'
 import type { TaskWithRelations, TeamMember } from '@/lib/types'
 import TaskComments from './TaskComments'
+import Avatar from '@/components/ui/Avatar'
 
 interface TaskCardProps {
   task: TaskWithRelations
@@ -140,9 +141,7 @@ export default function TaskCard({
         <div className="flex-shrink-0 hidden sm:flex items-center gap-1.5">
           {task.responsible ? (
             <>
-              <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[10px] font-bold">
-                {getInitials(task.responsible.name)}
-              </div>
+              <Avatar name={task.responsible.name} avatarUrl={task.responsible.avatar_url} size="sm" />
               <span className="text-xs text-slate-500 hidden md:block truncate max-w-[100px]">
                 {task.responsible.name}
               </span>
