@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
+import PwaSetup from '@/components/layout/PwaSetup'
 
 export default async function DashboardLayout({
   children,
@@ -40,6 +41,9 @@ export default async function DashboardLayout({
 
       {/* Bottom nav — visível apenas no mobile */}
       <BottomNav currentUser={member} />
+
+      {/* Banner de ativação de notificações push */}
+      <PwaSetup />
     </div>
   )
 }
