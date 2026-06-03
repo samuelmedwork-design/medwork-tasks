@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getTemplate, renderTemplate, sendEmail } from '@/lib/email'
+import { sendPushToMember } from '@/lib/push'
 import { parseISO, differenceInDays } from 'date-fns'
 
 const SYSTEM_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://medwork-tasks.vercel.app'
@@ -43,7 +44,10 @@ export async function GET(request: Request) {
           data_prevista: due.toLocaleDateString('pt-BR'),
           link_sistema: SYSTEM_URL,
         }
-        await sendEmail(responsible.email, renderTemplate(tpl.subject, vars), renderTemplate(tpl.body, vars))
+        await Promise.allSettled([
+          sendEmail(responsible.email, renderTemplate(tpl.subject, vars), renderTemplate(tpl.body, vars)),
+          sendPushToMember(task.responsible_id, { title: '⚠️ Tarefa vence em breve', body: task.title, url: SYSTEM_URL + '/tasks', tag: `due-${task.id}` }),
+        ])
         results.push(`due_soon → ${responsible.email}`)
       }
     }
@@ -59,7 +63,10 @@ export async function GET(request: Request) {
           data_prevista: due.toLocaleDateString('pt-BR'),
           link_sistema: SYSTEM_URL,
         }
-        await sendEmail(responsible.email, renderTemplate(tpl.subject, vars), renderTemplate(tpl.body, vars))
+        await Promise.allSettled([
+          sendEmail(responsible.email, renderTemplate(tpl.subject, vars), renderTemplate(tpl.body, vars)),
+          sendPushToMember(task.responsible_id, { title: '🔴 Tarefa atrasada', body: task.title, url: SYSTEM_URL + '/tasks', tag: `overdue-${task.id}` }),
+        ])
         results.push(`overdue → ${responsible.email}`)
       }
     }
