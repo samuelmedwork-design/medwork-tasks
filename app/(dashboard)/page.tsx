@@ -13,32 +13,38 @@ import { AlertCircle, Calendar, TrendingUp, Users, UserX, Clock, BarChart3 } fro
 import { parseISO } from 'date-fns'
 import type { DashboardStats, SectorProgress, TaskWithRelations, MemberWorkload, WeeklySummary, MonthlyStats } from '@/lib/types'
 
+// Sempre buscar dados frescos do servidor (sem cache de rota)
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const admin = createAdminClient()
 
+  // Busca TODAS as tarefas (incluindo arquivadas) para preservar o histórico.
   const { data: tasks } = await supabase
     .from('tasks')
     .select('*, sector:sectors(*), responsible:team_members!tasks_responsible_id_fkey(*), subtasks(*)')
-    .eq('archived', false)
     .order('created_at', { ascending: false })
 
   const allTasks = (tasks ?? []) as TaskWithRelations[]
+  // Visão operacional: tarefas que ainda estão "em jogo" (não arquivadas).
+  const activeTasks = allTasks.filter(t => !t.archived)
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
   // ── Stats cards ──────────────────────────────────────────────
+  // Concluídas e total contam o histórico completo; em andamento/atrasadas são operacionais.
   const stats: DashboardStats = {
     total: allTasks.length,
-    pending: allTasks.filter(t => t.status === 'pending').length,
-    in_progress: allTasks.filter(t => t.status === 'in_progress').length,
+    pending: activeTasks.filter(t => t.status === 'pending').length,
+    in_progress: activeTasks.filter(t => t.status === 'in_progress').length,
     completed: allTasks.filter(t => t.status === 'completed').length,
     cancelled: allTasks.filter(t => t.status === 'cancelled').length,
-    overdue: allTasks.filter(t => isOverdue(t.due_date, t.status)).length,
+    overdue: activeTasks.filter(t => isOverdue(t.due_date, t.status)).length,
   }
 
-  // ── Weekly summary ────────────────────────────────────────────
+  // ── Weekly summary (histórico — inclui arquivadas) ────────────
   const monday = new Date(today)
   monday.setDate(today.getDate() - ((today.getDay() + 6) % 7))
 
@@ -50,7 +56,7 @@ export default async function DashboardPage() {
     overdue: stats.overdue,
   }
 
-  // ── Sector progress ───────────────────────────────────────────
+  // ── Sector progress (histórico — inclui arquivadas) ───────────
   const { data: sectors } = await supabase.from('sectors').select('*')
   const sectorProgressData: SectorProgress[] = (sectors ?? []).map(sector => {
     const st = allTasks.filter(t => t.sector_id === sector.id)
@@ -58,37 +64,37 @@ export default async function DashboardPage() {
     return { sector, total: st.length, completed, percentage: st.length > 0 ? Math.round((completed / st.length) * 100) : 0 }
   }).filter(s => s.total > 0)
 
-  // ── Member workload ───────────────────────────────────────────
+  // ── Member workload (operacional — só tarefas abertas) ────────
   const { data: membersRaw } = await admin.from('team_members').select('*').order('name')
   const memberWorkload: MemberWorkload[] = (membersRaw ?? []).map(member => ({
     member,
-    open: allTasks.filter(t => t.responsible_id === member.id && ['pending', 'in_progress'].includes(t.status)).length,
-    overdue: allTasks.filter(t => t.responsible_id === member.id && isOverdue(t.due_date, t.status)).length,
+    open: activeTasks.filter(t => t.responsible_id === member.id && ['pending', 'in_progress'].includes(t.status)).length,
+    overdue: activeTasks.filter(t => t.responsible_id === member.id && isOverdue(t.due_date, t.status)).length,
     completed: allTasks.filter(t => t.responsible_id === member.id && t.status === 'completed').length,
   })).filter(m => m.open > 0).sort((a, b) => b.open - a.open)
 
-  // ── Due this week ─────────────────────────────────────────────
+  // ── Due this week (operacional) ───────────────────────────────
   const nextWeek = new Date(today)
   nextWeek.setDate(today.getDate() + 7)
-  const dueSoon = allTasks.filter(t => {
+  const dueSoon = activeTasks.filter(t => {
     if (!t.due_date || ['completed', 'cancelled'].includes(t.status)) return false
     const due = parseISO(t.due_date)
     return due >= today && due <= nextWeek
   }).sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
 
-  // ── Stale tasks (in_progress > 7 days unchanged) ──────────────
-  const staleTasks = allTasks.filter(t => {
+  // ── Stale tasks (operacional) ─────────────────────────────────
+  const staleTasks = activeTasks.filter(t => {
     if (t.status !== 'in_progress') return false
     const days = Math.floor((Date.now() - new Date(t.updated_at).getTime()) / (1000 * 60 * 60 * 24))
     return days >= 7
   }).sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime())
 
-  // ── Tasks without responsible ─────────────────────────────────
-  const noResponsible = allTasks.filter(t =>
+  // ── Tasks without responsible (operacional) ───────────────────
+  const noResponsible = activeTasks.filter(t =>
     !t.responsible_id && !['completed', 'cancelled'].includes(t.status)
   )
 
-  // ── Monthly delivery rate ─────────────────────────────────────
+  // ── Monthly delivery rate (histórico) ─────────────────────────
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
   const createdThisMonth = allTasks.filter(t => parseISO(t.created_at) >= startOfMonth).length
   const completedThisMonth = allTasks.filter(t =>
@@ -100,8 +106,8 @@ export default async function DashboardPage() {
     rate: createdThisMonth > 0 ? Math.round((completedThisMonth / createdThisMonth) * 100) : 0,
   }
 
-  // ── Priority tasks ────────────────────────────────────────────
-  const urgentTasks = allTasks
+  // ── Priority tasks (operacional) ──────────────────────────────
+  const urgentTasks = activeTasks
     .filter(t => !['completed', 'cancelled'].includes(t.status))
     .sort((a, b) => {
       const p = { urgent: 0, high: 1, medium: 2, low: 3 }
