@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { X, Loader2, AtSign } from 'lucide-react'
+import { X, Loader2, AtSign, MessageSquare } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { getInitials } from '@/lib/utils'
 import { formatDistanceToNow, parseISO } from 'date-fns'
@@ -190,8 +190,9 @@ export default function TaskComments({ taskId, currentMemberId, members }: TaskC
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+    <div className="mt-4 rounded-xl bg-slate-100/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 p-3.5">
+      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+        <MessageSquare className="w-3.5 h-3.5" />
         Comentários {comments.length > 0 && <span className="normal-case font-normal">({comments.length})</span>}
       </p>
 
@@ -266,7 +267,7 @@ export default function TaskComments({ taskId, currentMemberId, members }: TaskC
               onChange={handleInput}
               onKeyDown={handleKeyDown}
               placeholder="Comente... Digite @ para mencionar alguém."
-              className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button
               onClick={handleSend}
