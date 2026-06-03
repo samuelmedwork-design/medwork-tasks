@@ -363,7 +363,7 @@ export default function TaskCard({
             )}
           </div>
 
-          <TaskComments taskId={task.id} currentMemberId={currentMemberId} />
+          <TaskComments taskId={task.id} currentMemberId={currentMemberId} members={members} />
         </div>
       )}
     </div>
