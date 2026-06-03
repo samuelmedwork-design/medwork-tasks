@@ -28,8 +28,12 @@ export default async function DashboardLayout({
 
       {/* Conteúdo principal */}
       <main className="flex-1 md:ml-64 overflow-y-auto">
-        {/* Padding bottom no mobile para não ficar atrás do BottomNav */}
-        <div className="min-h-full px-4 pt-8 pb-24 md:p-8 md:pb-8">
+        {/* paddingTop combina a safe-area do iOS (status bar do iPhone) + respiro.
+            No desktop/Safari a safe-area é 0, então fica só o respiro de 2rem. */}
+        <div
+          className="min-h-full px-4 pb-24 md:px-8 md:pb-8"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top) + 2rem)' }}
+        >
           {children}
         </div>
       </main>
