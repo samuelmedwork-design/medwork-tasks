@@ -127,6 +127,7 @@ export default function MembersPage() {
         </button>
       </div>
 
+      {/* Mobile: cards | Desktop: tabela */}
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
         {loading ? (
           <div className="flex items-center justify-center py-16">
@@ -135,48 +136,78 @@ export default function MembersPage() {
         ) : members.length === 0 ? (
           <div className="text-center py-12 text-slate-400">Nenhum membro cadastrado.</div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Membro</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Setor</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Perfil</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Cards — mobile only */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-700">
               {members.map(member => (
-                <tr key={member.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={member.name} avatarUrl={member.avatar_url} size="md" />
-                      <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{member.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500 dark:text-slate-400">{member.email}</td>
-                  <td className="px-5 py-3.5">
-                    {member.sector ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{ backgroundColor: `${member.sector.color}18`, color: member.sector.color, border: `1px solid ${member.sector.color}40` }}>
-                        {member.sector.icon} {member.sector.name}
+                <div key={member.id} className="flex items-center gap-3 px-4 py-3.5">
+                  <Avatar name={member.name} avatarUrl={member.avatar_url} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{member.name}</p>
+                    <p className="text-xs text-slate-400 truncate">{member.email}</p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {member.sector ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                          style={{ backgroundColor: `${member.sector.color}18`, color: member.sector.color, border: `1px solid ${member.sector.color}40` }}>
+                          {member.sector.icon} {member.sector.name}
+                        </span>
+                      ) : null}
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${member.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                        {member.role === 'admin' ? 'Admin' : 'Membro'}
                       </span>
-                    ) : <span className="text-slate-300 text-sm">—</span>}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${member.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
-                      {member.role === 'admin' ? 'Administrador' : 'Membro'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <button onClick={() => openEdit(member)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
+                    </div>
+                  </div>
+                  <button onClick={() => openEdit(member)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex-shrink-0" title="Editar">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            {/* Tabela — desktop only */}
+            <table className="hidden md:table w-full">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Membro</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Setor</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Perfil</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {members.map(member => (
+                  <tr key={member.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={member.name} avatarUrl={member.avatar_url} size="md" />
+                        <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{member.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 text-sm text-slate-500 dark:text-slate-400">{member.email}</td>
+                    <td className="px-5 py-3.5">
+                      {member.sector ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                          style={{ backgroundColor: `${member.sector.color}18`, color: member.sector.color, border: `1px solid ${member.sector.color}40` }}>
+                          {member.sector.icon} {member.sector.name}
+                        </span>
+                      ) : <span className="text-slate-300 text-sm">—</span>}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${member.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                        {member.role === 'admin' ? 'Administrador' : 'Membro'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <button onClick={() => openEdit(member)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
 
