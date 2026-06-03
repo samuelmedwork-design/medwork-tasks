@@ -29,7 +29,7 @@ export default async function DashboardLayout({
       {/* Conteúdo principal */}
       <main className="flex-1 md:ml-64 overflow-y-auto">
         {/* Padding bottom no mobile para não ficar atrás do BottomNav */}
-        <div className="min-h-full p-4 md:p-8 pb-24 md:pb-8">
+        <div className="min-h-full px-4 pt-8 pb-24 md:p-8 md:pb-8">
           {children}
         </div>
       </main>
