@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Loader2, X, Pencil, Camera } from 'lucide-react'
+import { Plus, Loader2, X, Pencil, Camera, Bell, BellOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import Avatar from '@/components/ui/Avatar'
@@ -28,6 +28,7 @@ export default function MembersPage() {
   const [saving, setSaving] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [editingAvatarUrl, setEditingAvatarUrl] = useState<string | null>(null)
+  const [pushActiveIds, setPushActiveIds] = useState<Set<string>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState<MemberFormData>({ name: '', email: '', password: '', sector_id: '', role: 'member' })
@@ -39,8 +40,14 @@ export default function MembersPage() {
     setLoading(false)
   }
 
+  async function fetchPushStatus() {
+    const { data } = await supabase.from('push_subscriptions').select('member_id')
+    setPushActiveIds(new Set((data ?? []).map(s => s.member_id as string)))
+  }
+
   useEffect(() => {
     fetchMembers()
+    fetchPushStatus()
     supabase.from('sectors').select('*').order('name').then(({ data }) => setSectors(data ?? []))
   }, [])
 
@@ -119,7 +126,14 @@ export default function MembersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Membros</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Gerencie os membros da equipe</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            Gerencie os membros da equipe
+            {members.length > 0 && (
+              <> · <span className="text-green-600 dark:text-green-400 font-medium">
+                {members.filter(m => pushActiveIds.has(m.id)).length}/{members.length} com notificações ativas
+              </span></>
+            )}
+          </p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm">
           <Plus className="w-4 h-4" />
@@ -155,6 +169,15 @@ export default function MembersPage() {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${member.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
                         {member.role === 'admin' ? 'Admin' : 'Membro'}
                       </span>
+                      {pushActiveIds.has(member.id) ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                          <Bell className="w-3 h-3" /> Ativo
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500">
+                          <BellOff className="w-3 h-3" /> Sem push
+                        </span>
+                      )}
                     </div>
                   </div>
                   <button onClick={() => openEdit(member)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex-shrink-0" title="Editar">
@@ -172,6 +195,7 @@ export default function MembersPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Setor</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Perfil</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Notificações</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
@@ -197,6 +221,17 @@ export default function MembersPage() {
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${member.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
                         {member.role === 'admin' ? 'Administrador' : 'Membro'}
                       </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {pushActiveIds.has(member.id) ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                          <Bell className="w-3.5 h-3.5" /> Ativo
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500">
+                          <BellOff className="w-3.5 h-3.5" /> Sem push
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <button onClick={() => openEdit(member)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
