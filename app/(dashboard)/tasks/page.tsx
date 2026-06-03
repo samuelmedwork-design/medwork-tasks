@@ -234,48 +234,53 @@ export default function TasksPage() {
   const selectClass = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      {/* Header — empilha no mobile */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
             {showArchived ? 'Tarefas Arquivadas' : 'Tarefas'}
           </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            {filtered.length} tarefa{filtered.length !== 1 ? 's' : ''} encontrada{filtered.length !== 1 ? 's' : ''}
+          <p className="text-slate-500 text-sm mt-0.5">
+            {filtered.length} tarefa{filtered.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        {/* Botões: ícone+texto no desktop, só ícone no mobile */}
+        <div className="flex items-center gap-2 flex-wrap">
           {currentMemberId && (
             <button
               onClick={() => setShowMyTasks(v => !v)}
-              className={`flex items-center gap-2 px-4 py-2 font-semibold rounded-lg text-sm transition-colors border ${
+              title="Minhas Tarefas"
+              className={`flex items-center gap-2 px-3 py-2 font-semibold rounded-lg text-sm transition-colors border ${
                 showMyTasks
                   ? 'bg-indigo-600 border-indigo-600 text-white'
-                  : 'bg-white border-slate-200 text-slate-600 hover:text-slate-800 hover:border-slate-300 shadow-sm'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 shadow-sm'
               }`}
             >
-              <User className="w-4 h-4" />
-              Minhas Tarefas
+              <User className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Minhas Tarefas</span>
             </button>
           )}
           <button
             onClick={() => setShowArchived(v => !v)}
-            className={`flex items-center gap-2 px-4 py-2 font-semibold rounded-lg text-sm transition-colors border ${
+            title={showArchived ? 'Ver ativas' : 'Arquivadas'}
+            className={`flex items-center gap-2 px-3 py-2 font-semibold rounded-lg text-sm transition-colors border ${
               showArchived
                 ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
-                : 'bg-white border-slate-200 text-slate-600 hover:text-slate-800 hover:border-slate-300 shadow-sm'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 shadow-sm'
             }`}
           >
-            <Archive className="w-4 h-4" />
-            {showArchived ? 'Ver ativas' : 'Arquivadas'}
+            <Archive className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline">{showArchived ? 'Ver ativas' : 'Arquivadas'}</span>
           </button>
           {!showArchived && (
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
+              className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
             >
-              <Plus className="w-4 h-4" />
-              Nova Tarefa
+              <Plus className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Nova Tarefa</span>
+              <span className="sm:hidden">Nova</span>
             </button>
           )}
         </div>

@@ -110,7 +110,7 @@ export default function TaskCard({
     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       {/* Main row */}
       <div
-        className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+        className="flex gap-2.5 px-3 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
         onClick={() => onToggleExpand(task.id)}
       >
         {/* Sector color bar */}
@@ -118,15 +118,18 @@ export default function TaskCard({
           style={{ backgroundColor: task.sector?.color ?? '#cbd5e1' }} />
 
         {/* Expand icon */}
-        <div className="text-slate-400 flex-shrink-0">
+        <div className="text-slate-400 flex-shrink-0 mt-0.5">
           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </div>
 
-        {/* Title + sector */}
+        {/* Content — full width, stacks on mobile */}
         <div className="flex-1 min-w-0">
-          <p className={cn('text-sm font-semibold truncate', task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-100')}>
+          {/* Title */}
+          <p className={cn('text-sm font-semibold break-words leading-snug', task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-100')}>
             {task.title}
           </p>
+
+          {/* Sector + recurrence */}
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {task.sector && <span className="text-xs text-slate-400">{task.sector.icon} {task.sector.name}</span>}
             {task.recurrence_type && task.recurrence_type !== 'none' && (
@@ -135,63 +138,58 @@ export default function TaskCard({
               </span>
             )}
           </div>
-        </div>
 
-        {/* Responsible */}
-        <div className="flex-shrink-0 hidden sm:flex items-center gap-1.5">
-          {task.responsible ? (
-            <>
-              <Avatar name={task.responsible.name} avatarUrl={task.responsible.avatar_url} size="sm" />
-              <span className="text-xs text-slate-500 hidden md:block truncate max-w-[100px]">
-                {task.responsible.name}
+          {/* Mobile: responsible + badges + date + progress */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+            {/* Responsible */}
+            {task.responsible ? (
+              <div className="flex items-center gap-1">
+                <Avatar name={task.responsible.name} avatarUrl={task.responsible.avatar_url} size="sm" />
+                <span className="text-xs text-slate-500 truncate max-w-[90px]">{task.responsible.name}</span>
+              </div>
+            ) : (
+              <span className="flex items-center gap-0.5 text-xs text-slate-300">
+                <User className="w-3 h-3" /> Sem resp.
               </span>
-            </>
-          ) : (
-            <User className="w-4 h-4 text-slate-300" />
-          )}
-        </div>
+            )}
 
-        {/* Priority */}
-        <div className="flex-shrink-0">
-          <span className={cn('px-2 py-0.5 rounded-full text-xs font-semibold', getPriorityColor(task.priority), task.priority === 'urgent' && 'animate-pulse-urgent')}>
-            {getPriorityLabel(task.priority)}
-          </span>
-        </div>
+            {/* Priority */}
+            <span className={cn('px-1.5 py-0.5 rounded-full text-xs font-semibold', getPriorityColor(task.priority), task.priority === 'urgent' && 'animate-pulse-urgent')}>
+              {getPriorityLabel(task.priority)}
+            </span>
 
-        {/* Due date */}
-        {task.due_date && (
-          <div className={cn(
-            'flex-shrink-0 hidden md:flex items-center gap-1.5 text-xs font-medium rounded-full px-2 py-0.5',
-            dueDateStatus === 'overdue' && 'bg-red-100 text-red-600',
-            dueDateStatus === 'urgent' && 'bg-amber-100 text-amber-600',
-            dueDateStatus === 'normal' && 'text-slate-400 bg-transparent px-0 py-0',
-          )}>
-            <Calendar className="w-3 h-3" />
-            {dueDateStatus === 'overdue' && <span>ATRASADA</span>}
-            {dueDateStatus === 'urgent' && <span>⚠ {formatDate(task.due_date)}</span>}
-            {dueDateStatus === 'normal' && <span>{formatDate(task.due_date)}</span>}
+            {/* Status */}
+            <span className={cn('px-1.5 py-0.5 rounded-full text-xs font-medium', getStatusColor(task.status))}>
+              {getStatusLabel(task.status)}
+            </span>
+
+            {/* Due date */}
+            {task.due_date && (
+              <span className={cn(
+                'flex items-center gap-1 text-xs font-medium rounded-full px-1.5 py-0.5',
+                dueDateStatus === 'overdue' && 'bg-red-100 text-red-600',
+                dueDateStatus === 'urgent' && 'bg-amber-100 text-amber-600',
+                dueDateStatus === 'normal' && 'text-slate-400',
+              )}>
+                <Calendar className="w-3 h-3" />
+                {dueDateStatus === 'overdue' ? 'ATRASADA' : dueDateStatus === 'urgent' ? `⚠ ${formatDate(task.due_date)}` : formatDate(task.due_date)}
+              </span>
+            )}
+
+            {/* Progress */}
+            {task.subtasks.length > 0 && (
+              <div className="flex items-center gap-1.5 w-20">
+                <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+                </div>
+                <span className="text-xs text-slate-400 tabular-nums">{progress}%</span>
+              </div>
+            )}
           </div>
-        )}
-
-        {/* Progress bar */}
-        {task.subtasks.length > 0 && (
-          <div className="flex-shrink-0 hidden lg:flex items-center gap-2 w-24">
-            <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div className="h-full bg-indigo-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
-            </div>
-            <span className="text-xs text-slate-400 tabular-nums">{progress}%</span>
-          </div>
-        )}
-
-        {/* Status */}
-        <div className="flex-shrink-0">
-          <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', getStatusColor(task.status))}>
-            {getStatusLabel(task.status)}
-          </span>
         </div>
 
-        {/* Actions */}
-        <div className="flex-shrink-0 flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
+        {/* Actions — always visible, compact */}
+        <div className="flex-shrink-0 flex flex-col items-center gap-0.5 justify-center" onClick={e => e.stopPropagation()}>
           {!task.archived && (
             <button onClick={() => onEdit(task)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
               <Pencil className="w-3.5 h-3.5" />
