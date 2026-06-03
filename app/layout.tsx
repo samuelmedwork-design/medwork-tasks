@@ -31,7 +31,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" className={`${inter.variable} h-full`}>
       <head>
-        <link rel="apple-touch-icon" href="/logo.png" />
+        {/* Ícone quadrado para iPhone (apple-touch-icon) */}
+        <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+        <link rel="apple-touch-icon" sizes="96x96" href="/favicon-96.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>

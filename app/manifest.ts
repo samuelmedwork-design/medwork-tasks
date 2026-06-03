@@ -7,15 +7,32 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Sistema de controle de tarefas da equipe MedWork',
     start_url: '/',
     display: 'standalone',
-    background_color: '#f8fafc',
-    theme_color: '#6366f1',
+    background_color: '#ffffff',
+    theme_color: '#1a7a4a',
     orientation: 'portrait',
     categories: ['productivity', 'business'],
     icons: [
-      { src: '/logo.png', sizes: '192x192', type: 'image/png' },
-      { src: '/logo.png', sizes: '512x512', type: 'image/png' },
-      { src: '/logo.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      {
+        src: '/favicon-96.png',
+        sizes: '96x96',
+        type: 'image/png',
+      },
+      {
+        src: '/icon-512.png',
+        sizes: '192x192',
+        type: 'image/png',
+      },
+      {
+        src: '/icon-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+      },
+      {
+        src: '/icon-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
     ],
-    screenshots: [],
   }
 }
