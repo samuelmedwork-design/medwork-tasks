@@ -24,11 +24,13 @@ interface TaskCardProps {
   onArchive: (taskId: string, archive: boolean) => void
   members: TeamMember[]
   currentMemberId: string | null
+  highlightMemberId?: string | null
 }
 
 export default function TaskCard({
   task, isExpanded, onToggleExpand, onToggleSubtask, onAddSubtask, onEditSubtask,
   onReorderSubtasks, onDeleteSubtask, onEdit, onDelete, onArchive, members, currentMemberId,
+  highlightMemberId,
 }: TaskCardProps) {
   const [addingSubtask, setAddingSubtask] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
@@ -235,7 +237,10 @@ export default function TaskCard({
                   className={cn(
                     'flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors group',
                     dragOverId === subtask.id ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700' : 'hover:bg-white dark:hover:bg-slate-800',
-                    editingSubtaskId === subtask.id ? 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm' : ''
+                    editingSubtaskId === subtask.id ? 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm' : '',
+                    highlightMemberId && subtask.responsible_id === highlightMemberId && editingSubtaskId !== subtask.id
+                      ? 'bg-indigo-50/70 dark:bg-indigo-900/20 ring-1 ring-indigo-300 dark:ring-indigo-700'
+                      : ''
                   )}
                 >
                   {/* Drag handle */}

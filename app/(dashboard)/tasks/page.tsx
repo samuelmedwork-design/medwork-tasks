@@ -218,7 +218,11 @@ export default function TasksPage() {
       }
       if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
       if (filterSector && t.sector_id !== filterSector) return false
-      if (filterResponsible && t.responsible_id !== filterResponsible) return false
+      if (filterResponsible) {
+        const isResp = t.responsible_id === filterResponsible ||
+          t.subtasks.some(s => s.responsible_id === filterResponsible)
+        if (!isResp) return false
+      }
       if (filterStatus && t.status !== filterStatus) return false
       if (filterPriority && t.priority !== filterPriority) return false
       return true
@@ -357,6 +361,7 @@ export default function TasksPage() {
               onArchive={handleArchive}
               members={members}
               currentMemberId={currentMemberId}
+              highlightMemberId={filterResponsible || (showMyTasks ? currentMemberId : null)}
             />
           ))}
         </div>
